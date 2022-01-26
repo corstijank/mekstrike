@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gamemaster
+  name: gamemaster
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gamemaster
+  template:
+    metadata:
+      labels:
+        app: gamemaster
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "gamemaster"
+        dapr.io/app-port: "7011"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"
+        dapr.io/sidecar-listen-addresses: "0.0.0.0"
+    spec:
+      containers:
+      - image: mekstrike-gamemaster
+        imagePullPolicy: Never
+        name: gamemaster
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 7011
+          protocol: TCP
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gamemaster-svc
+  name: gamemaster-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 7011
+    protocol: TCP
+    targetPort: 7011
+  selector:
+    app: gamemaster
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: gamemaster-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - "/mekstrike/api/gamemaster"
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: gamemaster-addprefix
+  namespace: mekstrike
+spec:
+  addPrefix:
+    prefix: /v1.0/invoke/gamemaster/method
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gamemaster-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-gamemaster-stripprefix@kubernetescrd,mekstrike-gamemaster-addprefix@kubernetescrd
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: "/mekstrike/api/gamemaster"
+            pathType: Prefix
+            backend:
+               service:
+                name: gamemaster-dapr
+                port:
+                  number: 80

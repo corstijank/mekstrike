@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: unit
+  name: unit
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: unit
+  template:
+    metadata:
+      labels:
+        app: unit
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "unit"
+        dapr.io/app-port: "9000"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"          
+        instrumentation.opentelemetry.io/inject-java: "true"
+        dapr.io/sidecar-listen-addresses: "0.0.0.0"    
+    spec:
+      containers:
+      - image: mekstrike-unit
+        imagePullPolicy: Never
+        name: unit
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "1000m"
+      restartPolicy: Always
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: unit-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - /mekstrike/api/unit
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: unit-addprefix
+  namespace: mekstrike
+spec:
+  addPrefix:
+    prefix: /v1.0/actors/unit
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: unit-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-unit-stripprefix@kubernetescrd,mekstrike-unit-addprefix@kubernetescrd
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: "/mekstrike/api/unit"
+            pathType: Prefix
+            backend:
+               service:
+                name: unit-dapr
+                port:
+                  number: 80

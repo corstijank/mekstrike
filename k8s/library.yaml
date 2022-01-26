@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: library
+  name: library
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: library
+  template:
+    metadata:
+      labels:
+        app: library
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "library"
+        dapr.io/app-port: "7010"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"
+    spec:
+      containers:
+      - image: mekstrike-library
+        imagePullPolicy: Never
+        name: library
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 7010
+          protocol: TCP
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: library-svc
+  name: library-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 7010
+    protocol: TCP
+    targetPort: 7010
+  selector:
+    app: library
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: library-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - /mekstrike/api/library
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: library-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-library-stripprefix@kubernetescrd
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /mekstrike/api/library
+            pathType: Prefix
+            backend:
+              service:
+                name:  library-svc
+                port:
+                  number: 7010

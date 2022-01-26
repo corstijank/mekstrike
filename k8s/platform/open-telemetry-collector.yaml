@@ -1,0 +1,54 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: zipkin-apm-collector
+  namespace: monitoring
+spec:
+  image: otel/opentelemetry-collector-contrib-dev:latest
+  mode: deployment  
+  env:
+    - name: APM_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: apm-server-apm-token
+          key: secret-token
+  config: |
+    receivers:
+      zipkin:
+        endpoint: 0.0.0.0:9411
+      otlp:
+        protocols:
+          grpc:
+          http:
+    extensions:
+      health_check:
+      pprof:
+      zpages:
+    exporters:
+      logging:
+        loglevel: debug
+      otlp/elastic: 
+        # Elastic APM server https endpoint without the "https://" prefix
+        endpoint: "apm-server-apm-http:8200"  
+        tls:
+          insecure: false
+          insecure_skip_verify: true
+        headers:
+          # Elastic APM Server secret token
+          Authorization: "Bearer ${APM_TOKEN}"
+      jaeger:
+        endpoint: jaeger-collector:14250
+        tls:
+          insecure: true  
+    service:
+      extensions: [pprof, zpages, health_check]
+      pipelines:
+        traces:
+          receivers: [otlp,zipkin]
+          exporters: [otlp/elastic,jaeger] 
+        metrics:
+          receivers: [otlp]
+          exporters: [otlp/elastic]
+        logs:
+          receivers: [otlp]
+          exporters: [otlp/elastic]

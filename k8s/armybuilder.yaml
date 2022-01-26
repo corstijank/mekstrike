@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: armybuilder
+  name: armybuilder
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: armybuilder
+  template:
+    metadata:
+      labels:
+        app: armybuilder
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "armybuilder"
+        dapr.io/app-port: "9000"
+        dapr.io/app-protocol: "grpc"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"          
+        instrumentation.opentelemetry.io/inject-java: "true"
+    spec:
+      containers:
+      - image: mekstrike-armybuilder
+        imagePullPolicy: Never
+        name: armybuilder
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      restartPolicy: Always

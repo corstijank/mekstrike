@@ -1,0 +1,19 @@
+# Since library storage is shared between the library and the importer, 
+# we need a seperate store with keyprefix set to 'name', instead of 'appid'(default).
+# if set to APPID, different Dapr APPS can never access the same store
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: battlefield-store
+  namespace: mekstrike
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-master.redis.svc.cluster.local:6379
+  - name: redisPassword
+    value: Y5anVVb5C8  
+  - name: actorStateStore
+    value: "true"
+  

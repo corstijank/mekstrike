@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: battlefield
+  name: battlefield
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: battlefield
+  template:
+    metadata:
+      labels:
+        app: battlefield
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "battlefield"
+        dapr.io/app-port: "5000"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"      
+        dapr.io/sidecar-listen-addresses: "0.0.0.0"    
+    spec:
+      containers:
+      - image: mekstrike-battlefield
+        imagePullPolicy: Never
+        name: battlefield
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      restartPolicy: Always
+  
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: battlefield-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - /mekstrike/api/battlefield
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: battlefield-addprefix
+  namespace: mekstrike
+spec:
+  addPrefix:
+    prefix: /v1.0/actors/battlefield
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: battlefield-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-battlefield-stripprefix@kubernetescrd,mekstrike-battlefield-addprefix@kubernetescrd
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: "/mekstrike/api/battlefield"
+            pathType: Prefix
+            backend:
+               service:
+                name: battlefield-dapr
+                port:
+                  number: 80

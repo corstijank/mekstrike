@@ -1,0 +1,21 @@
+
+syntax = "proto3";
+
+package net.mekstrike.armybuilder;
+
+option java_outer_classname = "ArmyBuilderProtos";
+option java_package = "net.mekstrike.armybuilder";
+option go_package = "/abprotos";
+
+import "common/go/unit/stats.proto";
+ 
+message ArmyRequest {
+  int32 lights = 1;
+  int32 mediums = 2;
+  int32 heavies = 3;
+  int32 assaults = 4;
+}
+
+message ArmyResponse {
+  repeated net.mekstrike.common.unit.UnitStats units = 1;
+}

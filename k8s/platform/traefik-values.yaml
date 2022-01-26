@@ -1,0 +1,11 @@
+deployment:
+  podAnnotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "traefik-ingress"
+    dapr.io/app-port: "8000"
+
+additionalArguments:
+- --tracing.zipkin=true
+- --tracing.zipkin.httpEndpoint=http://zipkin-apm-collector-collector.monitoring.svc.cluster.local:9411/api/v2/spans
+- --tracing.zipkin.sampleRate=1
+- --log.level=DEBUG

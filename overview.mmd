@@ -1,0 +1,20 @@
+flowchart TB  
+  ui[ui\njs,svelte]
+  subgraph dapr[dapr & traefik]
+    armybuilder[armybuilder\njava,grpc]
+    library[library\ngolang,rest]
+    unit[unit\njava,actor]
+    battlefield[battlefield\nc#,actor]
+    firecontrol[firecontrol\npython,service]
+    gamemaster[gamemaster\ngolang,rest]
+
+    gamemaster-->armybuilder-->library
+    gamemaster-->unit
+    unit-->battlefield
+    unit-->firecontrol
+    firecontrol-->unit
+    firecontrol-->battlefield
+  end
+  ui-->gamemaster-->battlefield
+  ui-->unit
+  ui-->battlefield

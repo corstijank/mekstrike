@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ui
+  name: ui
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ui
+  template:
+    metadata:
+      labels:
+        app: ui      
+    spec:
+      containers:
+      - image: mekstrike-ui
+        imagePullPolicy: Never
+        name: ui
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ui-svc
+  name: ui-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: ui
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ui-ingress
+  namespace: mekstrike
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+               service:
+                name: ui-svc
+                port:
+                  number: 3000
