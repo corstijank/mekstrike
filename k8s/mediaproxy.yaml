@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mediaproxy
+  name: mediaproxy
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mediaproxy
+  template:
+    metadata:
+      labels:
+        app: mediaproxy
+    spec:
+      containers:
+      - image: mekstrike-mediaproxy
+        imagePullPolicy: Never
+        name: mediaproxy
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 9010
+          protocol: TCP
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mediaproxy-svc
+  name: mediaproxy-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9010
+    protocol: TCP
+    targetPort: 9010
+  selector:
+    app: mediaproxy
+
+---
+
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: mediaproxy-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - /mekstrike/media
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mediaproxy-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-mediaproxy-stripprefix@kubernetescrd
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /mekstrike/media
+            pathType: Prefix
+            backend:
+              service:
+                name:  mediaproxy-svc
+                port:
+                  number: 9010

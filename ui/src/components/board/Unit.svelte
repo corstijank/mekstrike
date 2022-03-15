@@ -12,7 +12,8 @@
 	let col = 0;
 	let row = 0;
 	let heading = 0;
-
+	let name="";
+	let model="";
 	// Points:
 	// 0 is mid right point,
 	// 1 is bottom right,
@@ -36,6 +37,8 @@
 				col = data.location.position.Col + 1;
 				row = data.location.position.Row + 1;
 				heading = data.location.heading;
+				name = data.stats.name;
+				model = data.stats.model;
 			});
 		event.subscribe((value) => {
 			// A very simple hitbox, we use topleft as min x,y,
@@ -67,7 +70,7 @@
 		topright = { x: x + radius * Math.cos(a * 5), y: y + radius * Math.sin(a * 5) };
 
 		var img = new Image(); // Create new img element
-		img.src = '/unit.png';
+		img.src = '/mekstrike/media/sprites/' + name;
 		rotateAndPaintImage(
 			context,
 			img,
@@ -77,6 +80,10 @@
 			img.width,
 			img.height
 		);
+
+		context.textAlign = "center";
+		context.fillText(model, x,topleft.y+9);
+
 	};
 
 	function rotateAndPaintImage(context, image, angleInRad, positionX, positionY, width, height) {

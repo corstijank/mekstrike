@@ -21,6 +21,7 @@ kubectl apply -f battlefield.yaml
 kubectl apply -f unit.yaml
 
 echo -e "${GREEN}Deploying Frontend${NC}"
+kubectl apply -f mediaproxy.yaml
 kubectl apply -f ui.yaml
 
 echo -e "${GREEN}Waiting for pods to initialize before applying importer${NC}"

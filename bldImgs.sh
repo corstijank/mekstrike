@@ -1,6 +1,7 @@
 #!/bin/bash
 docker build -t mekstrike-library -f library/Dockerfile .
 docker build -t mekstrike-importer -f library/importer/Dockerfile .
+docker build -t mekstrike-mediaproxy -f mediaproxy/Dockerfile .
 docker build -t mekstrike-gamemaster -f gamemaster/Dockerfile .
 docker build -t mekstrike-armybuilder -f armybuilder/Dockerfile .
 docker build -t mekstrike-battlefield -f battlefield/Dockerfile battlefield
