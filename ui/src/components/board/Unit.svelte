@@ -6,6 +6,7 @@
 	export let radius = 50;
 	export let id;
 
+	const TO_RADIANS = Math.PI / 180;
 	const a = (2 * Math.PI) / 6;
 
 	let col = 0;
@@ -27,14 +28,14 @@
 		topright = {};
 
 	onMount(() => {
-		fetch('/mekstrike/api/unit/' + id + '/method/GetLocation')
+		fetch('/mekstrike/api/unit/' + id + '/method/GetData')
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				col = data.position.Col + 1;
-				row = data.position.Row + 1;
-				heading = data.heading;
+				col = data.location.position.Col + 1;
+				row = data.location.position.Row + 1;
+				heading = data.location.heading;
 			});
 		event.subscribe((value) => {
 			// A very simple hitbox, we use topleft as min x,y,
@@ -67,8 +68,24 @@
 
 		var img = new Image(); // Create new img element
 		img.src = '/unit.png';
-		context.drawImage(img, x - radius, y - radius + 7.5, radius * 2, 0.85 * (radius * 2));
+		rotateAndPaintImage(
+			context,
+			img,
+			TO_RADIANS * (heading * 60),
+			x ,
+			y ,
+			img.width,
+			img.height
+		);
 	};
+
+	function rotateAndPaintImage(context, image, angleInRad, positionX, positionY, width, height) {
+		context.translate(positionX, positionY);
+		context.rotate(angleInRad);
+		context.drawImage(image, -(width/2), -(height/2));
+		context.rotate(-angleInRad);
+		context.translate(-positionX, -positionY);
+	}
 </script>
 
 <Layer {render} />

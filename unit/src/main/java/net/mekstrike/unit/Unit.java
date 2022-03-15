@@ -10,4 +10,7 @@ public interface Unit {
 
     @ActorMethod(name = "GetLocation")
     public UnitLocation getLocation();
+
+    @ActorMethod(name = "GetData")
+    public UnitData getData();
 }

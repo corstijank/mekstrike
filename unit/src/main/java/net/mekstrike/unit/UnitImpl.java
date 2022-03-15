@@ -84,6 +84,11 @@ public class UnitImpl extends AbstractActor implements Unit {
         return location;
     }
 
+    @Override    
+    public UnitData getData() {        
+        return new UnitData(location, stats, owner);
+    }
+
     /**
      * Callback function invoked after an Actor has been activated.
      *
