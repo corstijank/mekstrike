@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { Layer } from 'svelte-canvas';
 	import event from './store';
 
@@ -12,8 +12,9 @@
 	let col = 0;
 	let row = 0;
 	let heading = 0;
-	let name="";
-	let model="";
+	let name = '';
+	let model = '';
+	let owner = '';
 	// Points:
 	// 0 is mid right point,
 	// 1 is bottom right,
@@ -39,6 +40,7 @@
 				heading = data.location.heading;
 				name = data.stats.name;
 				model = data.stats.model;
+				owner = data.owner;
 			});
 		event.subscribe((value) => {
 			// A very simple hitbox, we use topleft as min x,y,
@@ -71,25 +73,23 @@
 
 		var img = new Image(); // Create new img element
 		img.src = '/mekstrike/media/sprites/' + name;
-		rotateAndPaintImage(
-			context,
-			img,
-			TO_RADIANS * (heading * 60),
-			x ,
-			y ,
-			img.width,
-			img.height
-		);
+		rotateAndPaintImage(context, img, TO_RADIANS * (heading * 60), x, y, img.width, img.height);
 
-		context.textAlign = "center";
-		context.fillText(model, x,topleft.y+9);
+		context.fillStyle = '#0000FF';
 
+		if (owner == 'CPU') {
+			context.fillStyle = '#FF0000';
+		}
+
+		context.textAlign = 'center';
+		context.fillText(model, x, topleft.y + 9);
+		context.fillStyle = '#000000';
 	};
 
 	function rotateAndPaintImage(context, image, angleInRad, positionX, positionY, width, height) {
 		context.translate(positionX, positionY);
 		context.rotate(angleInRad);
-		context.drawImage(image, -(width/2), -(height/2));
+		context.drawImage(image, -(width / 2), -(height / 2));
 		context.rotate(-angleInRad);
 		context.translate(-positionX, -positionY);
 	}
