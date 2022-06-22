@@ -44,7 +44,7 @@ func (s *Store) Close() {
 }
 
 func (s *Store) ReadMany(ctx context.Context, index string, helper Readable) ([]Readable, error) {
-	value, err := s.client.GetState(ctx, s.store, index)
+	value, err := s.client.GetState(ctx, s.store, index, make(map[string]string))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *Store) ReadMany(ctx context.Context, index string, helper Readable) ([]
 }
 
 func (s *Store) Read(ctx context.Context, key string, v Readable) (Readable, error) {
-	value, err := s.client.GetState(ctx, s.store, key)
+	value, err := s.client.GetState(ctx, s.store, key, make(map[string]string))
 	if err != nil {
 		return v, err
 	}
@@ -97,7 +97,7 @@ func (s *Store) Persist(ctx context.Context, e Saveable) error {
 	if err != nil {
 		return err
 	}
-	if err := s.client.SaveState(ctx, s.store, e.GetKey(), b); err != nil {
+	if err := s.client.SaveState(ctx, s.store, e.GetKey(), b, make(map[string]string)); err != nil {
 		return err
 	}
 
@@ -105,7 +105,7 @@ func (s *Store) Persist(ctx context.Context, e Saveable) error {
 		kf := false
 		keys := make([]string, 0)
 
-		value, err := s.client.GetState(ctx, s.store, index)
+		value, err := s.client.GetState(ctx, s.store, index, make(map[string]string))
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,7 @@ func (s *Store) Persist(ctx context.Context, e Saveable) error {
 			if err != nil {
 				return err
 			}
-			if err := s.client.SaveState(ctx, s.store, index, b); err != nil {
+			if err := s.client.SaveState(ctx, s.store, index, b, make(map[string]string)); err != nil {
 				return err
 			}
 		}

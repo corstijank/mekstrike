@@ -43,15 +43,13 @@
 				owner = data.owner;
 			});
 		event.subscribe((value) => {
-			// A very simple hitbox, we use topleft as min x,y,
-			// and bottomright as max x,y
 			if (
 				value.x >= topleft.x &&
 				value.x <= bottomright.x &&
 				value.y >= topleft.y &&
 				value.y <= bottomright.y
 			) {
-				console.log('Clicked unit ' + row + ' col ' + col);
+				handleClick();
 			}
 		});
 	});
@@ -93,6 +91,10 @@
 		context.rotate(-angleInRad);
 		context.translate(-positionX, -positionY);
 	}
+	function handleClick() {
+		console.log('Clicked unit ' + name + ' ' + model + ' from ' + owner);
+	}
 </script>
 
 <Layer {render} />
+

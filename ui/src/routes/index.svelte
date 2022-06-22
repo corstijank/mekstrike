@@ -5,6 +5,8 @@
 	import "terminal.css";
 </script>
 
+<MainMenu/>
+
 <style global>
 	:root {
 		--global-font-size: 15px;
@@ -31,5 +33,3 @@
 		--display-h1-decoration: none;
 	}
 </style>
-
-<MainMenu/>
