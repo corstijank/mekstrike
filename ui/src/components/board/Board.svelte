@@ -59,7 +59,7 @@
 
 <main>
 	<!-- TODO: This width/height is probably magic and won't scale for bigger boards. Test and fix-->
-	<Canvas width={cols * 80} height={rows * 95} on:click={(e) => handleClick(e)}>
+	<Canvas width={cols * 80} height={rows * 95} on:click={(e) => handleClick(e)} style="display:inline">
 		{#each cells as cell}
 			<Hex row={cell.Row + 1} col={cell.Col + 1} />
 		{/each}
