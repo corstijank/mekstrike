@@ -13,6 +13,7 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Context.Propagation;
+using B3Propagator = OpenTelemetry.Extensions.Propagators.B3Propagator;
 
 namespace BattlefieldService
 {
@@ -33,7 +34,7 @@ namespace BattlefieldService
                 options.JsonSerializerOptions = new JsonSerializerOptions { IncludeFields = true };
                 options.Actors.RegisterActor<Battlefield>();
             });
-            services.AddOpenTelemetryTracing(b =>
+            services.AddOpenTelemetry().WithTracing(b =>
             {
                 b
                 .AddSource("battlefield")
@@ -44,7 +45,6 @@ namespace BattlefieldService
                 {
                     opt.Endpoint = new Uri("http://zipkin-apm-collector-collector.monitoring.svc.cluster.local:4317");// Should parametrize this                    
                 });
-                //.AddConsoleExporter();
             });
         }
 
