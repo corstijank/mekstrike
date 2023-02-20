@@ -1,5 +1,5 @@
 # Build JAR
-FROM openjdk:11-jdk AS BUILDER
+FROM openjdk:17-jdk AS BUILDER
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ WORKDIR /app/unit
 RUN ./mvnw package
 
 ## Build actual image
-FROM openjdk:11-jdk
+FROM openjdk:17-jdk
 
 WORKDIR /app
 

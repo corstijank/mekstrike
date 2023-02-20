@@ -16,10 +16,6 @@
 ./bldImgs.sh
 # Deploy application, make sure dapr is up and running before running this
 ./k8s/deploy.sh
-# Start a new game
-curl -d '{"PlayerName":"HelloThisIsDog"}' -H "Content-Type: application/json" -X POST http://localhost/mekstrike/api/gamemaster/games
-# Or use the excellent HTTPie:
-# http post http://localhost/mekstrike/api/gamemaster/games PlayerName=ThisIsDog
 ```
 
 ### Useful CLI snippets
