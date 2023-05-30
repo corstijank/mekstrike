@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0
+FROM mcr.microsoft.com/dotnet/sdk:7.0
 WORKDIR /app
 
 # Copy csproj and restore as distinct layers
@@ -11,4 +11,4 @@ RUN dotnet restore
 # Copy everything else and build
 RUN dotnet publish -c Release 
 
-CMD ["/app/BattlefieldService/bin/Release/net6.0/BattlefieldService"]
+CMD ["/app/BattlefieldService/bin/Release/net7.0/BattlefieldService"]

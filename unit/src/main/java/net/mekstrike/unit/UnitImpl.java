@@ -35,12 +35,13 @@ public class UnitImpl extends AbstractActor implements Unit {
 
         var battlefield = battlefieldBuilder.build(new ActorId(battlefieldID));
         CellRef cell = null;
+         
         // Default heading = UP
         // TODO: Extract heading to something less magically numbered
         int heading = 0;
         if (data.getDeployLocation().equalsIgnoreCase("NE")) {
             // start 0,0
-            int row = 0;
+            int row = 0; 
             int col = 0;
             while (cell == null) {
                 LOGGER.info("Checking if cell is blocked - Col " + col + " row " + row);
@@ -64,6 +65,8 @@ public class UnitImpl extends AbstractActor implements Unit {
                     col--;
                 }
             }
+        } else {
+            throw new IllegalStateException("Deploy location for data " + data.getStats().getModel() + " should be NE or SW");
         }
         LOGGER.info("Blocking cell for unit deployment - Col " + cell.getCol() + " row " + cell.getRow());
         battlefield.blockCell(cell);
