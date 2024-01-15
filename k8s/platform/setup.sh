@@ -31,7 +31,7 @@ echo -e "${GREEN}Deplaying Otel collector${NC}"
 kubectl apply -f open-telemetry-collector.yaml
 
 echo -e "${GREEN}Installing Helm Apps and operators, Dapr, Traefik and Redis${NC}" 
-helm upgrade --install dapr dapr/dapr --version=1.9.0 --namespace dapr-system --create-namespace
+helm upgrade --install dapr dapr/dapr --version=1.12.0 --namespace dapr-system --create-namespace
 helm upgrade --install --values=./redis-values.yaml redis bitnami/redis --namespace redis --create-namespace 
 
 

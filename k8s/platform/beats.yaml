@@ -4,7 +4,7 @@ metadata:
   name: filebeat
 spec:
   type: filebeat
-  version: 7.16.2
+  version: 8.11.4
   elasticsearchRef:
     name: elasticsearch
   config:

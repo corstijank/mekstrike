@@ -4,7 +4,7 @@ metadata:
   name: elasticsearch
   namespace: monitoring
 spec:
-  version: 7.16.2
+  version: 8.11.4
   nodeSets:
   - name: default
     count: 1

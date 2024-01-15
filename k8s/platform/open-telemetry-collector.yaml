@@ -36,7 +36,7 @@ spec:
         headers:
           # Elastic APM Server secret token
           Authorization: "Bearer ${APM_TOKEN}"
-      jaeger:
+      otlp/jaeger:
         endpoint: jaeger-collector:14250
         tls:
           insecure: true  
@@ -45,7 +45,7 @@ spec:
       pipelines:
         traces:
           receivers: [otlp,zipkin]
-          exporters: [otlp/elastic,jaeger] 
+          exporters: [otlp/elastic,otlp/jaeger] 
         metrics:
           receivers: [otlp]
           exporters: [otlp/elastic]
