@@ -1,0 +1,32 @@
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: jaeger
+  namespace: monitoring
+spec:
+  strategy: allInOne
+  allInOne:
+    options:
+      query:
+        base-path: /jaeger
+  ingress:
+    enabled: false
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger-ingress
+  namespace: monitoring
+spec:
+  rules:
+    - host: "localhost"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/jaeger"
+            backend:
+              service:
+                name: jaeger-query
+                port:
+                  number: 16686
