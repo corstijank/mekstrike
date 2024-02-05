@@ -8,6 +8,8 @@ namespace Battlefield.Interfaces
     {
         Task<List<Hex>> GetBoardCells();
 
+        Task<List<Hex>> GetMovementOptions(int startX, int startY, string movement);
+
         Task<int>GetNumberOfCols();
 
         Task<int>GetNumberOfRows();

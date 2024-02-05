@@ -35,6 +35,18 @@ namespace BattlefieldService
             return Task.FromResult<List<Hex>>(result);
         }
 
+        Task<List<Hex>> IBattlefield.GetMovementOptions(int startX, int startY, string movement)
+        {
+            var m = Int32.Parse(movement.Split('"')[0]);
+            List<HexCore.Coordinate2D> range = board.MapGraph.GetMovementRange(new HexCore.Coordinate2D(startX, startY, HexCore.OffsetTypes.OddRowsRight), m, Movement.Walking);
+            var result = new List<Hex>();
+            foreach (HexCore.Coordinate2D c2d in range) 
+            {
+                result.Add(Hex.FromCellState(board.MapGraph.GetCellState(c2d)));
+            }
+            return Task.FromResult<List<Hex>>(result);
+        }
+
         Task<int> IBattlefield.GetNumberOfCols()
         {
             return Task.FromResult<int>(cols);
@@ -54,6 +66,7 @@ namespace BattlefieldService
             board.BlockCell(position.Row, position.Col);
             return Task.CompletedTask;
         }
+
 
         /// <summary>
         /// This method is called whenever an actor is activated.
