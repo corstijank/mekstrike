@@ -7,14 +7,17 @@ public class UnitData {
 
     private String owner;
 
+    private boolean active;
+
     public UnitData() {
 
     }
 
-    public UnitData(UnitLocation location, UnitStats stats, String owner) {
+    public UnitData(UnitLocation location, UnitStats stats, String owner, boolean active) {
         this.location = location;
         this.stats = stats;
         this.owner = owner;
+        this.active = active;
     }
 
     public UnitLocation getLocation() {
@@ -39,5 +42,13 @@ public class UnitData {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

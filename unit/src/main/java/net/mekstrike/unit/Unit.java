@@ -8,9 +8,9 @@ public interface Unit {
     @ActorMethod(name = "Deploy")
     public void deploy(DeployData data);
 
-    @ActorMethod(name = "GetLocation")
-    public UnitLocation getLocation();
-
     @ActorMethod(name = "GetData")
     public UnitData getData();
+
+    @ActorMethod(name = "SetActive")
+    public void setActive(boolean active);
 }

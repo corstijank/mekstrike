@@ -28,6 +28,7 @@
 		midleft = {},
 		topleft = {},
 		topright = {};
+	let active = false;
 
 	onMount(() => {
 		fetch('/mekstrike/api/unit/' + id + '/method/GetData')
@@ -41,6 +42,11 @@
 				name = data.stats.name;
 				model = data.stats.model;
 				owner = data.owner;
+				active = data.active;
+
+				if (active) {
+					console.log('Unit ' + name + ' ' + model + ' from ' + owner + ' is active');
+				}
 			});
 		event.subscribe((value) => {
 			if (
@@ -78,6 +84,25 @@
 		if (owner == 'CPU') {
 			context.fillStyle = '#FF0000';
 		}
+		if (active) {
+			// console.log("Drawing active unit " + model + " from " + owner);
+			context.strokeStyle = '#0000FF';
+			context.lineWidth = 4;
+			context.beginPath();
+
+			// This could be done in a neat loop, but I want to keep track of points for simplehitboxing later.
+			// This is much easier to read.
+			context.lineTo(midright.x, midright.y);
+			context.lineTo(bottomright.x, bottomright.y);
+			context.lineTo(bottomleft.x, bottomleft.y);
+			context.lineTo(midleft.x, midleft.y);
+			context.lineTo(topleft.x, topleft.y);
+			context.lineTo(topright.x, topright.y);
+
+			context.closePath();
+			context.stroke();
+			context.strokeStyle = '#000000';
+		}
 
 		context.textAlign = 'center';
 		context.fillText(model, x, topleft.y + 9);
@@ -92,9 +117,8 @@
 		context.translate(-positionX, -positionY);
 	}
 	function handleClick() {
-		console.log('Clicked unit ' + name + ' ' + model + ' from ' + owner);
+		console.log('Clicked unit ' + name + ' ' + model + ' from ' + owner + ' active is ' + active);
 	}
 </script>
 
 <Layer {render} />
-
