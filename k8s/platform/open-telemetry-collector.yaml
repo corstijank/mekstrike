@@ -19,8 +19,6 @@ spec:
       pprof:
       zpages:
     exporters:
-      logging:
-        loglevel: debug
       otlp/jaeger:
         endpoint: jaeger-collector:4317
         tls:
