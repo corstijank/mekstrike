@@ -1,14 +1,22 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0
+# Build JAR
+FROM maven:3-eclipse-temurin-21 AS BUILDER
+
 WORKDIR /app
 
-# Copy csproj and restore as distinct layers
-COPY BattlefieldService BattlefieldService
-COPY Battlefield.Interfaces Battlefield.Interfaces
+COPY battlefield/pom.xml .
 
-WORKDIR /app/BattlefieldService
-RUN dotnet restore
+RUN mvn dependency:go-offline
 
-# Copy everything else and build
-RUN dotnet publish -c Release 
+COPY battlefield/src/ ./src/
 
-CMD ["/app/BattlefieldService/bin/Release/net7.0/BattlefieldService"]
+RUN mvn package
+
+## Build actual image
+FROM eclipse-temurin:21
+
+WORKDIR /app
+
+# COPY the fat jar
+COPY --from=builder /app/target/mekstrike-battlefield-exec.jar /app/battlefield.jar
+
+CMD ["java","-jar","/app/battlefield.jar"]

@@ -17,9 +17,10 @@ spec:
       annotations:
         dapr.io/enabled: "true"
         dapr.io/app-id: "battlefield"
-        dapr.io/app-port: "5000"
+        dapr.io/app-port: "9000"
         dapr.io/log-as-json: "true"
         dapr.io/config: "appconfig"      
+        instrumentation.opentelemetry.io/inject-java: "true"
         dapr.io/sidecar-listen-addresses: "0.0.0.0"    
     spec:
       containers:

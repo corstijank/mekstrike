@@ -22,7 +22,7 @@ type NewGameRequest struct {
 	PlayerName string
 }
 
-var games map[string]game.Data
+var games map[string]*game.Data
 var abc armybuilder.AbClient
 
 func main() {
@@ -33,11 +33,12 @@ func main() {
 	}
 	defer abc.Close()
 
-	games = make(map[string]game.Data)
+	games = make(map[string]*game.Data)
 
 	r := mux.NewRouter()
 
 	r.HandleFunc("/games/{id}", getGame).Methods("GET")
+	r.HandleFunc("/games/{id}/currentOpts", getCurrentOptions).Methods("GET")
 	r.HandleFunc("/games", newGame).Methods("POST")
 	r.HandleFunc("/games", getGames).Methods("GET")
 
@@ -53,9 +54,18 @@ func getGame(rw http.ResponseWriter, r *http.Request) {
 func getGames(rw http.ResponseWriter, r *http.Request) {
 	result := make([]game.Data, 0)
 	for _, v := range games {
-		result = append(result, v)
+		result = append(result, *v)
 	}
 	writeJSONResponse(result, rw)
+}
+
+func getCurrentOptions(rw http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	options, err := games[id].GetCurrentMoveOptions(r.Context())
+	if err != nil {
+		http.Error(rw, "Oh no", 500)
+	}
+	writeJSONResponse(options, rw)
 }
 
 func newGame(rw http.ResponseWriter, r *http.Request) {
@@ -99,7 +109,7 @@ func newGame(rw http.ResponseWriter, r *http.Request) {
 	log.Printf("Force A: %+v\n", armyA)
 	log.Printf("Force B: %+v\n", armyB)
 
-	bf, err := battlefield.NewBattlefield(id.String())
+	bf, err := battlefield.GetBattlefieldClient(id.String())
 	if err != nil {
 		log.Println(err)
 	}
@@ -136,9 +146,13 @@ func newGame(rw http.ResponseWriter, r *http.Request) {
 		PlayerB:       "CPU",
 		PlayerBValue:  valueB,
 		PlayerBUnits:  playerBUnits,
-		BattlefieldID: bf.ID(),
+		Battlefieldld: bf.ID(),
+		ActivePlayer:  game.PlayerA,
+		CurrentRound:  0,
+		CurrentPhase:  game.Movement,
 	}
-	games[g.ID] = g
+	games[g.ID] = &g
+	g.StartGame(ctx)
 
 	writeJSONResponse(g, rw)
 }

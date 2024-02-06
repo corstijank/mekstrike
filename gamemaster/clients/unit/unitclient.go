@@ -12,6 +12,8 @@ type UnitClient struct {
 	daprClient dapr.Client
 	id         string
 	Deploy     func(context.Context, DeployData) error
+	SetActive  func(context.Context, bool) error
+	GetData    func(context.Context) (UnitData, error)
 }
 
 type DeployData struct {
@@ -28,6 +30,23 @@ func NewUnit(battlefiedID string, player string, stats *unit.UnitStats) (*UnitCl
 		return &UnitClient{}, err
 	}
 	id := fmt.Sprintf("%s-%s-%s", stats.GetModel(), player, battlefiedID)
+
+	result := &UnitClient{
+		daprClient: client,
+		id:         id,
+	}
+
+	client.ImplActorClientStub(result)
+
+	return result, nil
+}
+
+func GetUnitClient(id string) (*UnitClient, error) {
+	var err error
+	client, err := dapr.NewClient()
+	if err != nil {
+		return &UnitClient{}, err
+	}
 
 	result := &UnitClient{
 		daprClient: client,

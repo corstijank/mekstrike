@@ -1,7 +1,7 @@
 <script>
 	import { DateTime } from 'luxon';
 
-	export let games = [{ StartTime: DateTime.now(), PlayerA: '', PlayerB: '',BattlefieldID:"BattlefieldID" }];	
+	export let games = [{ StartTime: DateTime.now(), PlayerA: '', PlayerB: '',Battlefieldld:"BattlefieldID" }];	
 </script>
 
 <main>
@@ -12,7 +12,7 @@
 				<ul>
 					{#each games as game}
 						<li>
-							<a sveltekit:prefetch href="/game/{game.BattlefieldID}">	{DateTime.fromISO(game.StartTime).toLocaleString(DateTime.DATETIME_SHORT)}: {game.PlayerA}({game.PlayerAValue})
+							<a href="/game/{game.Battlefieldld}">	{DateTime.fromISO(game.StartTime).toLocaleString(DateTime.DATETIME_SHORT)}: {game.PlayerA}({game.PlayerAValue})
 								vs. {game.PlayerB}({game.PlayerBValue})</a>
 						</li>
 					{/each}
@@ -23,9 +23,7 @@
 </main>
 
 <style>
-	.foreground-blue {
-		color: #62c4ff;
-	}
+
 	.background-transparent {
 		background: rgba(0, 0, 0, 0.75);
 	}

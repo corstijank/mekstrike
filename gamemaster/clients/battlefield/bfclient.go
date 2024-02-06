@@ -3,13 +3,15 @@ package battlefield
 import (
 	"context"
 
+	"github.com/corstijank/mekstrike/src/gamemaster/clients/unit"
 	dapr "github.com/dapr/go-sdk/client"
 )
 
 type BattlefieldClient struct {
-	daprClient    dapr.Client
-	id            string
-	GetBoardCells func(context.Context) ([]Cell, error)
+	daprClient         dapr.Client
+	id                 string
+	GetBoardCells      func(context.Context) ([]Cell, error)
+	GetMovementOptions func(context.Context, unit.UnitData) ([]Cell, error)
 }
 
 type Cell struct {
@@ -18,7 +20,7 @@ type Cell struct {
 	TerrainTypeID int
 }
 
-func NewBattlefield(id string) (*BattlefieldClient, error) {
+func GetBattlefieldClient(id string) (*BattlefieldClient, error) {
 	var err error
 	client, err := dapr.NewClient()
 	if err != nil {
