@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corstijank/mekstrike/common/go/storage"
+	"github.com/corstijank/mekstrike/domain/storage"
 	"github.com/corstijank/mekstrike/domain/unit"
 	"github.com/gorilla/mux"
 	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"

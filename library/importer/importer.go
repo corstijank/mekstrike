@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corstijank/mekstrike/common/go/storage"
+	"github.com/corstijank/mekstrike/domain/storage"
 	"github.com/corstijank/mekstrike/domain/unit"
 	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gocolly/colly"

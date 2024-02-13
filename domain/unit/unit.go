@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/corstijank/mekstrike/common/go/storage"
+	"github.com/corstijank/mekstrike/domain/storage"
 )
 
 func (s *Stats) Marshal() ([]byte, error) {
