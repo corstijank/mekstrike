@@ -24,14 +24,14 @@ echo -e "${GREEN}Waiting 30s for otel and jaeger operator to initialize${NC}"
 sleep 30
 
 echo -e "${GREEN}Deplaying Otel collector${NC}" 
-kubectl apply -f open-telemetry-collector.yaml
+kubectl apply -f k8s/platform/open-telemetry-collector.yaml
 
 echo -e "${GREEN}Installing Jaeger${NC}" 
-kubectl apply -f jaeger.yaml
+kubectl apply -f k8s/platform/jaeger.yaml
 
 echo -e "${GREEN}Installing Helm Apps and operators, Dapr and Redis${NC}" 
-helm upgrade --install --values=./dapr-values.yaml dapr dapr/dapr --version=1.12.0 --namespace dapr-system --create-namespace
-helm upgrade --install --values=./redis-values.yaml redis bitnami/redis --namespace redis --create-namespace 
+helm upgrade --install --values=k8s/platform/dapr-values.yaml dapr dapr/dapr --version=1.12.0 --namespace dapr-system --create-namespace
+helm upgrade --install --values=k8s/platform/redis-values.yaml redis bitnami/redis --namespace redis --create-namespace 
 
 echo -e "${GREEN}Waiting 30s for everything else to initialize${NC}"
 sleep 30

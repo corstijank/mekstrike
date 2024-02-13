@@ -1,7 +1,7 @@
 # Build JAR
 FROM maven:3-eclipse-temurin-21 AS BUILDER
 
-COPY common /app/common
+COPY domain /app/domain
 COPY armybuilder /app/armybuilder
 
 WORKDIR /app/armybuilder

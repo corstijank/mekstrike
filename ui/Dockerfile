@@ -1,12 +1,14 @@
 FROM node:17-alpine
 
 # install dependencies
-WORKDIR /app
-COPY package.json package-lock.json ./
+WORKDIR /app/ui
+COPY ui/package.json /app/ui
+COPY ui/package-lock.json /app/ui
 RUN npm ci
 
 # Copy all local files into the image.
-COPY . .
+COPY ui /app/ui
+WORKDIR /app/ui
 
 RUN npx svelte-kit build
 
@@ -17,7 +19,7 @@ RUN npx svelte-kit build
 FROM node:17-alpine
 
 WORKDIR /app
-COPY --from=0 /app .
+COPY --from=0 /app/ui .
 COPY . .
 
 EXPOSE 3000
