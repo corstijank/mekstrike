@@ -1,15 +1,15 @@
 # Build JAR
-FROM openjdk:17-jdk AS BUILDER
+FROM maven:3-eclipse-temurin-21 AS BUILDER
 
-WORKDIR /app
+COPY common /app/common
+COPY armybuilder /app/armybuilder
 
-COPY . .
 WORKDIR /app/armybuilder
-
-RUN ./mvnw package
+RUN mvn dependency:go-offline
+RUN mvn package
 
 ## Build actual image
-FROM openjdk:17-jdk
+FROM eclipse-temurin:21
 
 WORKDIR /app
 

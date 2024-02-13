@@ -4,34 +4,25 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+	"sort"
 
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/armybuilder"
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/battlefield"
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/unit"
-	"github.com/corstijank/mekstrike/src/gamemaster/game"
-	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
-	"go.opencensus.io/trace/propagation"
-	"google.golang.org/grpc/metadata"
+	"github.com/corstijank/mekstrike/gamemaster/clients/bfclient"
+	"github.com/corstijank/mekstrike/gamemaster/clients/uclient"
+	"github.com/corstijank/mekstrike/gamemaster/game"
+	dapr "github.com/dapr/go-sdk/client"
 
 	"github.com/gorilla/mux"
-	uuid "github.com/satori/go.uuid"
 )
 
 type NewGameRequest struct {
 	PlayerName string
 }
 
+var client dapr.Client
 var games map[string]*game.Data
-var abc armybuilder.AbClient
 
 func main() {
-	var err error
-	abc, err = armybuilder.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer abc.Close()
+	client, _ = dapr.NewClient()
 
 	games = make(map[string]*game.Data)
 
@@ -39,6 +30,8 @@ func main() {
 
 	r.HandleFunc("/games/{id}", getGame).Methods("GET")
 	r.HandleFunc("/games/{id}/currentOpts", getCurrentOptions).Methods("GET")
+	r.HandleFunc("/games/{id}/board", getBoard).Methods("GET")
+	r.HandleFunc("/games/{id}/units/{uid}", getUnit).Methods("GET")
 	r.HandleFunc("/games", newGame).Methods("POST")
 	r.HandleFunc("/games", getGames).Methods("GET")
 
@@ -52,30 +45,62 @@ func getGame(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getGames(rw http.ResponseWriter, r *http.Request) {
-	result := make([]game.Data, 0)
+	result := make(gameList, 0)
 	for _, v := range games {
 		result = append(result, *v)
 	}
+	sort.Sort(result)
 	writeJSONResponse(result, rw)
 }
 
 func getCurrentOptions(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	options, err := games[id].GetCurrentMoveOptions(r.Context())
+	options, err := games[id].GetCurrentMoveOptions(r.Context(), client)
 	if err != nil {
 		http.Error(rw, "Oh no", 500)
 	}
 	writeJSONResponse(options, rw)
 }
 
+func getBoard(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	id := mux.Vars(r)["id"]
+	g := games[id]
+	bfc := bfclient.GetBattlefieldClient(client, g.Battlefieldld)
+	cells, err := bfc.GetBoardCells(ctx)
+	if err != nil {
+		http.Error(rw, "Error getting cells", 500)
+	}
+	cols, err := bfc.GetNumberOfCols(ctx)
+	if err != nil {
+		http.Error(rw, "Error getting cols", 500)
+	}
+	rows, err := bfc.GetNumberOfRows(ctx)
+	if err != nil {
+		http.Error(rw, "Error getting rows", 500)
+	}
+	writeJSONResponse(map[string]interface{}{"cells": cells, "rows": rows, "cols": cols}, rw)
+}
+
+func getUnit(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	uid := mux.Vars(r)["uid"]
+	uc := uclient.GetUnitClient(client, uid)
+
+	unitData, err := uc.GetData(ctx)
+	if err != nil {
+		log.Println(err)
+		http.Error(rw, "Error getting unit client", 500)
+	}
+	writeJSONResponse(unitData, rw)
+}
+
 func newGame(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	f := tracecontext.HTTPFormat{}
-	sc, _ := f.SpanContextFromRequest(r)
-	traceContextBinary := propagation.Binary(sc)
-	ctx = metadata.AppendToOutgoingContext(ctx, "grpc-trace-bin", string(traceContextBinary))
 
-	log.Printf("Gamemaster::newGame - called as part of trace %+v", sc.TraceID)
+	log.Printf("Gamemaster::newGame - called")
 
 	req := NewGameRequest{}
 	if r.Body == nil {
@@ -88,71 +113,14 @@ func newGame(rw http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-
-	id, err := uuid.NewV4()
+	g, err := game.New(ctx, client, req.PlayerName)
 	if err != nil {
-		log.Println(err)
-	}
-
-	armyA, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
-	if err != nil {
-		http.Error(rw, err.Error(), 500)
+		http.Error(rw, err.Error(), 400)
 		log.Println(err)
 		return
-	}
-	armyB, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
-	if err != nil {
-		http.Error(rw, err.Error(), 500)
-		log.Println(err)
-		return
-	}
-	log.Printf("Force A: %+v\n", armyA)
-	log.Printf("Force B: %+v\n", armyB)
-
-	bf, err := battlefield.GetBattlefieldClient(id.String())
-	if err != nil {
-		log.Println(err)
-	}
-	// Should make an init here
-	_, err = bf.GetBoardCells(ctx)
-	if err != nil {
-		log.Println(err)
-	}
-	playerAUnits := make([]string, 0)
-	valueA := 0
-	for _, u := range armyA {
-		valueA += int(u.Pointvalue)
-		// Should make DaprClient a parameter to skip useless inits in client
-		newUnit, _ := unit.NewUnit(bf.ID(), req.PlayerName, u)
-		newUnit.Deploy(ctx, unit.DeployData{BattlefieldID: bf.ID(), Owner: req.PlayerName, Stats: u, DeployLocation: "NE"})
-		playerAUnits = append(playerAUnits, newUnit.ID())
-	}
-
-	playerBUnits := make([]string, 0)
-	valueB := 0
-	for _, u := range armyB {
-		valueB += int(u.Pointvalue)
-		newUnit, _ := unit.NewUnit(bf.ID(), "CPU", u)
-		newUnit.Deploy(ctx, unit.DeployData{BattlefieldID: bf.ID(), Owner: "CPU", Stats: u, DeployLocation: "SW"})
-		playerBUnits = append(playerBUnits, newUnit.ID())
-	}
-
-	g := game.Data{
-		ID:            id.String(),
-		StartTime:     time.Now(),
-		PlayerA:       req.PlayerName,
-		PlayerAValue:  valueA,
-		PlayerAUnits:  playerAUnits,
-		PlayerB:       "CPU",
-		PlayerBValue:  valueB,
-		PlayerBUnits:  playerBUnits,
-		Battlefieldld: bf.ID(),
-		ActivePlayer:  game.PlayerA,
-		CurrentRound:  0,
-		CurrentPhase:  game.Movement,
 	}
 	games[g.ID] = &g
-	g.StartGame(ctx)
+	g.StartGame(ctx, client)
 
 	writeJSONResponse(g, rw)
 }
@@ -171,4 +139,18 @@ func writeJSONResponse(obj interface{}, w http.ResponseWriter) {
 		log.Printf("%v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+type gameList []game.Data
+
+func (gl gameList) Len() int {
+	return len(gl)
+}
+
+func (gl gameList) Less(i, j int) bool {
+	return gl[i].StartTime.Before(gl[j].StartTime)
+}
+
+func (gl gameList) Swap(i, j int) {
+	gl[i], gl[j] = gl[j], gl[i]
 }

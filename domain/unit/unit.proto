@@ -1,0 +1,49 @@
+
+syntax = "proto3";
+
+package net.mekstrike.domain.unit;
+
+option java_outer_classname = "Unit";
+option java_package = "net.mekstrike.domain.unit";
+option go_package = "github.com/corstijank/mekstrike/domain/unit";
+
+import "domain/battlefield/battlefield.proto";
+
+message Stats {
+  string name=1;
+  string model=2;
+  int32 pointvalue=3;
+  string type=4;
+  int32 size=5;
+  string movement=6;
+  string role=7;
+  int32 shortdmg=8;
+  int32 meddmg=9;
+  int32 longdmg=10;
+  int32 ovhdmg=11;
+  int32 armor=12;
+  int32 struct=13;
+  repeated string specials=14;
+  string image=15;
+}
+
+message Location{
+  string battlefieldId=1;
+  net.mekstrike.domain.battlefield.Coordinates position=2;
+  int32 heading=3;
+}
+
+message Data{
+  Stats stats=1;
+  Location location=2;
+  string owner=3;
+  bool active=4;
+}
+
+message DeployRequest{
+  string battlefieldId=1;
+  string owner=2;
+  Stats stats=3;
+  string corner=4;
+}
+

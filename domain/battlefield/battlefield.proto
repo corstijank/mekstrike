@@ -1,0 +1,19 @@
+
+syntax = "proto3";
+
+package net.mekstrike.domain.battlefield;
+
+option java_outer_classname = "Battlefield";
+option java_package = "net.mekstrike.domain.battlefield";
+option go_package = "github.com/corstijank/mekstrike/domain/battlefield";
+
+message Coordinates {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message Cell {
+    Coordinates coordinates = 1;
+    string type = 2;    
+}
+

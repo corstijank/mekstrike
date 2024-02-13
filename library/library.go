@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corstijank/mekstrike/src/common/go/storage"
-	"github.com/corstijank/mekstrike/src/common/go/unit"
+	"github.com/corstijank/mekstrike/common/go/storage"
+	"github.com/corstijank/mekstrike/domain/unit"
 	"github.com/gorilla/mux"
 	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
 	"go.opencensus.io/trace/propagation"
@@ -28,7 +28,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer store.Close()
 
 	r := mux.NewRouter()
 
@@ -48,7 +47,7 @@ func units(rw http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Library::units - called as part of trace %+v", sc.TraceID)
 
-	ir, err := store.ReadMany(ctx, "_units", &unit.UnitStats{})
+	ir, err := store.ReadMany(ctx, "_units", &unit.Stats{})
 	if err != nil {
 		log.Printf("Error reading from store: %+v", err)
 	}
@@ -74,7 +73,7 @@ func unitsByType(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, fmt.Sprintf("Unsupported unit type: %s", t), 500)
 	}
 
-	ir, err := store.ReadMany(ctx, "_units"+t, &unit.UnitStats{})
+	ir, err := store.ReadMany(ctx, "_units"+t, &unit.Stats{})
 	if err != nil {
 		log.Printf("Error reading from store: %+v", err)
 	}
@@ -113,7 +112,7 @@ func randomUnitsFromTypeAndClass(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, fmt.Sprintf("Unsupported unit class: %s", c), 500)
 		return
 	}
-	ir, err := store.ReadMany(ctx, fmt.Sprintf("_units_%s_%d", t, s), &unit.UnitStats{})
+	ir, err := store.ReadMany(ctx, fmt.Sprintf("_units_%s_%d", t, s), &unit.Stats{})
 	if err != nil {
 		log.Printf("Error reading from store: %+v", err)
 	}
@@ -153,7 +152,7 @@ func unitsByTypeAndClass(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ir, err := store.ReadMany(ctx, fmt.Sprintf("_units_%s_%d", t, s), &unit.UnitStats{})
+	ir, err := store.ReadMany(ctx, fmt.Sprintf("_units_%s_%d", t, s), &unit.Stats{})
 	if err != nil {
 		log.Printf("Error reading from store: %+v", err)
 	}
@@ -164,10 +163,10 @@ func unitsByTypeAndClass(rw http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(&result, rw)
 }
 
-func toUnitStats(in []storage.Readable) ([]*unit.UnitStats, error) {
-	result := make([]*unit.UnitStats, len(in))
+func toUnitStats(in []storage.Readable) ([]*unit.Stats, error) {
+	result := make([]*unit.Stats, len(in))
 	for i, o := range in {
-		obj, ok := o.(*unit.UnitStats)
+		obj, ok := o.(*unit.Stats)
 		if !ok {
 			return nil, fmt.Errorf("%+v is not of type unit.Stats", o)
 		}

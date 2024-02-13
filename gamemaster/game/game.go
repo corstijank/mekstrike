@@ -7,8 +7,13 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/battlefield"
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/unit"
+	"github.com/corstijank/mekstrike/domain/battlefield"
+	unitType "github.com/corstijank/mekstrike/domain/unit"
+	"github.com/corstijank/mekstrike/gamemaster/clients/armybuilder"
+	"github.com/corstijank/mekstrike/gamemaster/clients/bfclient"
+	"github.com/corstijank/mekstrike/gamemaster/clients/uclient"
+	dapr "github.com/dapr/go-sdk/client"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Player int
@@ -52,10 +57,86 @@ type Options struct {
 
 type MoveOptions struct {
 	Options
-	AllowedCells []battlefield.Cell
+	AllowedCoordinates []battlefield.Coordinates
 }
 
-func (g *Data) StartGame(ctx context.Context) {
+type NewGameRequest struct {
+	PlayerName string
+}
+
+func New(ctx context.Context, client dapr.Client, playername string) (Data, error) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		log.Println(err)
+	}
+
+	abc, err := armybuilder.New(client)
+	if err != nil {
+		return Data{}, err
+	}
+	armyA, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	if err != nil {
+		return Data{}, err
+	}
+	armyB, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	if err != nil {
+		return Data{}, err
+	}
+
+	log.Printf("Force A: %+v\n", armyA)
+	log.Printf("Force B: %+v\n", armyB)
+
+	bf := bfclient.GetBattlefieldClient(client, id.String())
+	if err != nil {
+		return Data{}, err
+	}
+	// Should make an init here
+	_, err = bf.GetBoardCells(ctx)
+	if err != nil {
+		return Data{}, err
+	}
+	playerAUnits := make([]string, 0)
+	valueA := 0
+	for _, u := range armyA {
+		valueA += int(u.Pointvalue)
+		// Should make DaprClient a parameter to skip useless inits in client
+		newUnit := uclient.NewUnit(client, bf.ID(), playername, u)
+		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: playername, Stats: u, Corner: "NE"})
+		if err != nil {
+			return Data{}, err
+		}
+		playerAUnits = append(playerAUnits, newUnit.ID())
+	}
+
+	playerBUnits := make([]string, 0)
+	valueB := 0
+	for _, u := range armyB {
+		valueB += int(u.Pointvalue)
+		newUnit := uclient.NewUnit(client, bf.ID(), "CPU", u)
+		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: "CPU", Stats: u, Corner: "SW"})
+		if err != nil {
+			return Data{}, err
+		}
+		playerBUnits = append(playerBUnits, newUnit.ID())
+	}
+
+	return Data{
+		ID:            id.String(),
+		StartTime:     time.Now(),
+		PlayerA:       playername,
+		PlayerAValue:  valueA,
+		PlayerAUnits:  playerAUnits,
+		PlayerB:       "CPU",
+		PlayerBValue:  valueB,
+		PlayerBUnits:  playerBUnits,
+		Battlefieldld: bf.ID(),
+		ActivePlayer:  PlayerA,
+		CurrentRound:  0,
+		CurrentPhase:  Movement,
+	}, nil
+}
+
+func (g *Data) StartGame(ctx context.Context, client dapr.Client) {
 	randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	g.CurrentRound = 0
@@ -113,27 +194,20 @@ func (g *Data) StartGame(ctx context.Context) {
 		g.CurrentUnitOrder = unitOrder
 	}
 
-	g.NewRound(ctx)
+	g.NewRound(ctx, client)
 
 }
 
-func (g Data) GetCurrentMoveOptions(ctx context.Context) (MoveOptions, error) {
+func (g Data) GetCurrentMoveOptions(ctx context.Context, client dapr.Client) (MoveOptions, error) {
 	currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
-	currentUnit, err := unit.GetUnitClient(currentUnitID)
-	if err != nil {
-		return MoveOptions{}, err
-	}
+	currentUnit := uclient.GetUnitClient(client, currentUnitID)
 	unitData, err := currentUnit.GetData(ctx)
 	if err != nil {
 		return MoveOptions{}, err
 	}
 
-	bf, err := battlefield.GetBattlefieldClient(g.Battlefieldld)
-	if err != nil {
-		return MoveOptions{}, err
-	}
-
-	options, err := bf.GetMovementOptions(ctx, unitData)
+	bf := bfclient.GetBattlefieldClient(client, g.Battlefieldld)
+	options, err := bf.GetMovementOptions(ctx, &unitData)
 	if err != nil {
 		return MoveOptions{}, err
 	}
@@ -145,23 +219,20 @@ func (g Data) GetCurrentMoveOptions(ctx context.Context) (MoveOptions, error) {
 			CurrentPhase:  g.CurrentPhase,
 			CurrentUnitID: currentUnitID,
 		},
-		AllowedCells: options}, nil
+		AllowedCoordinates: options}, nil
 
 }
 
-func (g *Data) NewRound(ctx context.Context) {
+func (g *Data) NewRound(ctx context.Context, client dapr.Client) {
 	g.CurrentRound++
 	g.CurrentPhase = Movement
 	g.CurrentUnitIdx = 0
 	log.Printf("New Round: %d", g.CurrentRound)
 	log.Printf("Activating unit %s", g.CurrentUnitOrder[g.CurrentUnitIdx])
-	u, err := unit.GetUnitClient(g.CurrentUnitOrder[g.CurrentUnitIdx])
+	u := uclient.GetUnitClient(client, g.CurrentUnitOrder[g.CurrentUnitIdx])
+	err := u.SetActive(ctx, true)
 	if err != nil {
-		log.Println(err.Error())
-	}
-	err = u.SetActive(ctx, true)
-	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Error setting active\n%v", err.Error())
 	}
 }
 

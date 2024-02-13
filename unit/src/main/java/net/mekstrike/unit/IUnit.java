@@ -2,15 +2,16 @@ package net.mekstrike.unit;
 
 import io.dapr.actors.ActorMethod;
 import io.dapr.actors.ActorType;
+import net.mekstrike.domain.unit.Unit;
 
 @ActorType(name = "unit")
-public interface Unit {
+public interface IUnit {
     @ActorMethod(name = "Deploy")
-    public void deploy(DeployData data);
+    void deploy(Unit.DeployRequest request);
 
     @ActorMethod(name = "GetData")
-    public UnitData getData();
+    Unit.Data getData();
 
     @ActorMethod(name = "SetActive")
-    public void setActive(boolean active);
+    void setActive(boolean active);
 }

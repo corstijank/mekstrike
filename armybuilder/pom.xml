@@ -62,7 +62,8 @@
                 <include>..</include>
               </includeDirectories>
               <inputDirectories>
-                <include>../common/go/unit</include>
+                <include>../domain/battlefield</include>
+                <include>../domain/unit</include>
                 <include>src/main/proto</include>
               </inputDirectories>
             </configuration>
@@ -127,7 +128,7 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>3.21.12</version>
+      <version>3.25.2</version>
     </dependency>
   </dependencies>
 

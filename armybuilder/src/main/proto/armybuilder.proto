@@ -7,7 +7,7 @@ option java_outer_classname = "ArmyBuilderProtos";
 option java_package = "net.mekstrike.armybuilder";
 option go_package = "/abprotos";
 
-import "common/go/unit/stats.proto";
+import "domain/unit/unit.proto";
  
 message ArmyRequest {
   int32 lights = 1;
@@ -17,5 +17,5 @@ message ArmyRequest {
 }
 
 message ArmyResponse {
-  repeated net.mekstrike.common.unit.UnitStats units = 1;
+  repeated net.mekstrike.domain.unit.Stats units = 1;
 }

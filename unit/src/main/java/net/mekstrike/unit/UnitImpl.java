@@ -8,89 +8,105 @@ import io.dapr.actors.client.ActorClient;
 import io.dapr.actors.client.ActorProxyBuilder;
 import io.dapr.actors.runtime.AbstractActor;
 import io.dapr.actors.runtime.ActorRuntimeContext;
+import net.mekstrike.domain.battlefield.Battlefield;
+import net.mekstrike.domain.unit.Unit;
+import net.mekstrike.serialization.MekstrikeSerializer;
+import net.mekstrike.unit.external.IBattlefield;
 import reactor.core.publisher.Mono;
 
-public class UnitImpl extends AbstractActor implements Unit {
-    private static final Logger LOGGER = LoggerFactory.getLogger(UnitImpl.class);
+public class UnitImpl extends AbstractActor implements IUnit {
+    private static final Logger logger = LoggerFactory.getLogger(UnitImpl.class);
 
     private String owner;
 
-    private boolean active;
+    private Boolean active;
 
-    private UnitStats stats;
+    private Unit.Stats stats;
 
-    private UnitLocation location;
+    private Unit.Location location;
 
-    private ActorProxyBuilder<Battlefield> battlefieldBuilder;
+    private ActorProxyBuilder<IBattlefield> battlefieldBuilder;
 
     public UnitImpl(ActorRuntimeContext<UnitImpl> runtimeContext, ActorId id) {
         super(runtimeContext, id);
-        battlefieldBuilder = new ActorProxyBuilder<Battlefield>(Battlefield.class, new ActorClient());
+        battlefieldBuilder = new ActorProxyBuilder<IBattlefield>(IBattlefield.class, new ActorClient())
+                .withObjectSerializer(new MekstrikeSerializer());
     }
 
     @Override
-    public void deploy(DeployData data) {
-        String battlefieldID = data.getBattlefieldID();
+    public void deploy(Unit.DeployRequest data) {
+        String battlefieldID = data.getBattlefieldId();
         owner = data.getOwner();
         stats = data.getStats();
         active = false;
 
-        LOGGER.info("Deploying unit " + data.getStats().getModel() + " for player " + data.getOwner());
+        if (logger.isInfoEnabled()) {
+            logger.info("Deploying unit {} for player {}", data.getStats().getModel(), data.getOwner());
+        }
 
         var battlefield = battlefieldBuilder.build(new ActorId(battlefieldID));
-        CellRef cell = null;
+        Battlefield.Coordinates coordinates = null;
 
         // Default heading = UP
         // TODO: Extract heading to something less magically numbered
         int heading = 0;
-        if (data.getDeployLocation().equalsIgnoreCase("NE")) {
+        if ("NE".equalsIgnoreCase(data.getCorner())) {
             // start 0,0
-            int row = 0;
-            int col = 0;
-            while (cell == null) {
-                LOGGER.info("Checking if cell is blocked - Col " + col + " row " + row);
-                if (!battlefield.isCellBlocked(new CellRef(col, row))) {
-                    cell = new CellRef(col, row);
+            int y = 1;
+            int x = 1;
+            while (coordinates == null) {
+                var c = Battlefield.Coordinates.newBuilder().setX(x).setY(y).build();
+                logger.info("Checking if cell is blocked - x:{} y{} || {}", x, y, coordinates);
+
+                if (!battlefield.isCellBlocked(c)) {
+                    coordinates = c;
                 } else {
-                    col++;
+                    x++;
                 }
             }
             // Set heading to DOWN
             heading = 3;
-        } else if (data.getDeployLocation().equalsIgnoreCase("SW")) {
+        } else if ("SW".equalsIgnoreCase(data.getCorner())) {
             // Start bottomr right and walk back
-            int row = battlefield.getNumberOfRows() - 1;
-            int col = battlefield.getNumberOfCols() - 1;
-            while (cell == null) {
-                LOGGER.info("Checking if cell is blocked - Col " + col + " row " + row);
-                if (!battlefield.isCellBlocked(new CellRef(col, row))) {
-                    cell = new CellRef(col, row);
+            int y = battlefield.getNumberOfRows();
+            int x = battlefield.getNumberOfCols();
+            while (coordinates == null) {
+                var c = Battlefield.Coordinates.newBuilder().setX(x).setY(y).build();
+                logger.info("Checking if cell is blocked - x:{} y{} || {}", x, y, coordinates);
+
+                if (!battlefield.isCellBlocked(c)) {
+                    coordinates = c;
                 } else {
-                    col--;
+                    x--;
                 }
             }
         } else {
             throw new IllegalStateException(
                     "Deploy location for data " + data.getStats().getModel() + " should be NE or SW");
         }
-        LOGGER.info("Blocking cell for unit deployment - Col " + cell.getCol() + " row " + cell.getRow());
-        battlefield.blockCell(cell);
+        battlefield.blockCell(coordinates);
 
-        location = new UnitLocation(battlefieldID, cell, heading);
+        location = Unit.Location.newBuilder().setBattlefieldId(battlefieldID).setPosition(coordinates)
+                .setHeading(heading).build();
 
-        LOGGER.info("Deployed unit " + data.getStats().getModel() + " for player " + data.getOwner() + " to row "
-                + cell.getRow() + " col " + cell.getCol() + " of battlefield " + data.getBattlefieldID());
+        if (logger.isInfoEnabled()) {
+            logger.info("Deployed unit {} for player {} to x:{},y:{} of battlefield {}", data.getStats().getModel(),
+                    owner,
+                    coordinates.getX(), coordinates.getY(), battlefieldID);
+        }
         saveUnit().block();
     }
 
     @Override
-    public UnitData getData() {
-        return new UnitData(location, stats, owner, active);
+    public Unit.Data getData() {
+        return Unit.Data.newBuilder().setLocation(location).setStats(stats).setOwner(owner).setActive(active).build();
     }
 
     @Override
     public void setActive(boolean active) {
-        LOGGER.info(" Activating unit " + stats.getModel() + " for player " + owner);
+        if (logger.isInfoEnabled()) {
+            logger.info(" Activating unit {} for player {}", stats.getModel(), owner);
+        }
         this.active = active;
         saveUnit().block();
     }
@@ -102,10 +118,10 @@ public class UnitImpl extends AbstractActor implements Unit {
      */
     protected Mono<Void> onActivate() {
         if (getActorStateManager().contains("stats").block()) {
-            active = getActorStateManager().get("active", Boolean.class).block();
+            active = getActorStateManager().get("active",boolean.class).block();
             owner = getActorStateManager().get("owner", String.class).block();
-            stats = getActorStateManager().get("stats", UnitStats.class).block();
-            location = getActorStateManager().get("location", UnitLocation.class).block();
+            stats = getActorStateManager().get("stats", Unit.Stats.class).block();
+            location = getActorStateManager().get("location", Unit.Location.class).block();
         }
         return Mono.empty();
     }

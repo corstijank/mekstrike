@@ -16,7 +16,7 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import net.mekstrike.armybuilder.ArmyBuilderProtos.ArmyRequest;
 import net.mekstrike.armybuilder.ArmyBuilderProtos.ArmyResponse;
-import net.mekstrike.common.unit.CommonUnitProtos;
+import net.mekstrike.domain.unit.Unit;
 
 public class ArmyBuilderService extends AppCallbackGrpc.AppCallbackImplBase {
 
@@ -93,7 +93,7 @@ public class ArmyBuilderService extends AppCallbackGrpc.AppCallbackImplBase {
     var parser = JsonFormat.parser();
     var result = ArmyResponse.newBuilder();
     for (int i = 0; i < req.getLights(); i++) {
-      var unit = CommonUnitProtos.UnitStats.newBuilder();
+      var unit = Unit.Stats.newBuilder();
       byte[] response = client
           .invokeMethod("library", "units/by/BM/light/random", "", HttpExtension.GET, null, byte[].class).block();
 
@@ -102,21 +102,21 @@ public class ArmyBuilderService extends AppCallbackGrpc.AppCallbackImplBase {
 
     }
     for (int i = 0; i < req.getMediums(); i++) {
-      var unit = CommonUnitProtos.UnitStats.newBuilder();
+      var unit = Unit.Stats.newBuilder();
       byte[] response = client
           .invokeMethod("library", "units/by/BM/medium/random", "", HttpExtension.GET, null, byte[].class).block();
       parser.merge(new String(response), unit);
       result.addUnits(unit);
     }
     for (int i = 0; i < req.getHeavies(); i++) {
-      var unit = CommonUnitProtos.UnitStats.newBuilder();
+      var unit = Unit.Stats.newBuilder();
       byte[] response = client
           .invokeMethod("library", "units/by/BM/heavy/random", "", HttpExtension.GET, null, byte[].class).block();
       parser.merge(new String(response), unit);
       result.addUnits(unit);
     }
     for (int i = 0; i < req.getAssaults(); i++) {
-      var unit = CommonUnitProtos.UnitStats.newBuilder();
+      var unit = Unit.Stats.newBuilder();
       byte[] response = client
           .invokeMethod("library", "units/by/BM/assault/random", "", HttpExtension.GET, null, byte[].class).block();
       parser.merge(new String(response), unit);

@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/corstijank/mekstrike/src/common/go/unit"
-	"github.com/corstijank/mekstrike/src/gamemaster/clients/armybuilder/abprotos"
+	"github.com/corstijank/mekstrike/domain/unit"
+	"github.com/corstijank/mekstrike/gamemaster/clients/armybuilder/abprotos"
 	dapr "github.com/dapr/go-sdk/client"
 	"google.golang.org/protobuf/proto"
 )
@@ -14,19 +14,13 @@ type AbClient struct {
 	client dapr.Client
 }
 
-func New() (AbClient, error) {
-	var err error
-	client, err := dapr.NewClient()
-	if err != nil {
-		return AbClient{}, err
-	}
-
+func New(client dapr.Client) (AbClient, error) {
 	return AbClient{
 		client: client,
 	}, nil
 }
 
-func (c *AbClient) CreateArmy(ctx context.Context, lights int, mediums int, heavies int, assaults int) ([]*unit.UnitStats, error) {
+func (c *AbClient) CreateArmy(ctx context.Context, lights int, mediums int, heavies int, assaults int) ([]*unit.Stats, error) {
 	freq := &abprotos.ArmyRequest{
 		Lights:   int32(lights),
 		Mediums:  int32(mediums),
@@ -36,7 +30,7 @@ func (c *AbClient) CreateArmy(ctx context.Context, lights int, mediums int, heav
 	out, err := proto.Marshal(freq)
 	if err != nil {
 		log.Println(err)
-		return make([]*unit.UnitStats, 0), err
+		return make([]*unit.Stats, 0), err
 	}
 
 	content := &dapr.DataContent{
@@ -51,7 +45,7 @@ func (c *AbClient) CreateArmy(ctx context.Context, lights int, mediums int, heav
 		content)
 	if err != nil {
 		log.Println(err)
-		return make([]*unit.UnitStats, 0), err
+		return make([]*unit.Stats, 0), err
 
 	}
 
@@ -61,8 +55,4 @@ func (c *AbClient) CreateArmy(ctx context.Context, lights int, mediums int, heav
 		log.Println(err)
 	}
 	return army.Units, nil
-}
-
-func (c *AbClient) Close() {
-	c.client.Close()
 }

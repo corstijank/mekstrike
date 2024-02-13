@@ -1,16 +1,21 @@
 # Build JAR
-FROM openjdk:17-jdk AS BUILDER
+FROM maven:3-eclipse-temurin-21 AS BUILDER
 
 WORKDIR /app
 
-COPY . .
-WORKDIR /app/unit
+COPY unit /app/unit
+COPY domain /app/domain
 
-# Build the jar
-RUN ./mvnw package
+WORKDIR /app/domain
+RUN mvn dependency:go-offline
+RUN mvn install
+
+WORKDIR /app/unit
+RUN mvn dependency:go-offline
+RUN mvn package
 
 ## Build actual image
-FROM openjdk:17-jdk
+FROM eclipse-temurin:21
 
 WORKDIR /app
 

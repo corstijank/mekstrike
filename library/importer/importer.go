@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corstijank/mekstrike/src/common/go/storage"
-	"github.com/corstijank/mekstrike/src/common/go/unit"
+	"github.com/corstijank/mekstrike/common/go/storage"
+	"github.com/corstijank/mekstrike/domain/unit"
 	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gocolly/colly"
 )
@@ -33,7 +33,7 @@ func main() {
 	}
 
 	log.Printf("Checking if there are already units")
-	ir, err := s.ReadMany(ctx, "_units", &unit.UnitStats{})
+	ir, err := s.ReadMany(ctx, "_units", &unit.Stats{})
 	if err != nil {
 		log.Panic(err)
 	}
@@ -44,7 +44,7 @@ func main() {
 
 	log.Printf("No units exist; scraping from www.masterunitlist.info")
 
-	units := make([]*unit.UnitStats, 0)
+	units := make([]*unit.Stats, 0)
 
 	// Table Collector
 	tc := colly.NewCollector()
@@ -64,7 +64,7 @@ func main() {
 	})
 
 	uc.OnHTML("form[action*='/Tools/CardGenerator']", func(e *colly.HTMLElement) {
-		units = append(units, &unit.UnitStats{
+		units = append(units, &unit.Stats{
 			Name:       readStringValueFromInput(e, "Name"),
 			Model:      readStringValueFromInput(e, "Model"),
 			Pointvalue: readIntValueFromInput(e, "PV"),

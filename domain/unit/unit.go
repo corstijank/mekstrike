@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/corstijank/mekstrike/src/common/go/storage"
+	"github.com/corstijank/mekstrike/common/go/storage"
 )
 
-func (s *UnitStats) Marshal() ([]byte, error) {
+func (s *Stats) Marshal() ([]byte, error) {
 	result, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
@@ -15,7 +15,7 @@ func (s *UnitStats) Marshal() ([]byte, error) {
 	return result, nil
 }
 
-func (s *UnitStats) Unmarshal(b []byte) (storage.Readable, error) {
+func (s *Stats) Unmarshal(b []byte) (storage.Readable, error) {
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return s, err
@@ -23,10 +23,10 @@ func (s *UnitStats) Unmarshal(b []byte) (storage.Readable, error) {
 	return s, nil
 }
 
-func (u *UnitStats) GetKey() string {
+func (u *Stats) GetKey() string {
 	return fmt.Sprintf("%s-%s", u.Name, u.Model)
 }
 
-func (u *UnitStats) GetIndices() []string {
+func (u *Stats) GetIndices() []string {
 	return []string{"_units", fmt.Sprintf("_units_%s", u.Type), fmt.Sprintf("_units_%s_%d", u.Type, u.Size)}
 }

@@ -2,32 +2,38 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.mekstrike</groupId>
-  <artifactId>unit</artifactId>
+  <artifactId>domain</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
  
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
   <build>
     <plugins>
+      <!-- Generate protocol buffer code -->
       <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>2.3.5.RELEASE</version>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>3.11.4</version>
         <executions>
           <execution>
+            <phase>generate-sources</phase>
             <goals>
-              <goal>repackage</goal>
+              <goal>run</goal>
             </goals>
             <configuration>
-              <mainClass>net.mekstrike.unit.Program</mainClass>
-              <classifier>exec</classifier>
-              <finalName>mekstrike-unit</finalName>
+              <includeDirectories>
+                <include>..</include>
+              </includeDirectories>
+              <inputDirectories>
+                <include>battlefield</include>
+                <include>unit</include>
+              </inputDirectories>
             </configuration>
           </execution>
         </executions>
@@ -49,12 +55,6 @@
   </repositories>
 
   <dependencies>
-    <!-- Dapr's core SDK with all features, except Actors. -->
-    <dependency>
-      <groupId>io.dapr</groupId>
-      <artifactId>dapr-sdk</artifactId>
-      <version>1.7.1</version>
-    </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
@@ -62,23 +62,8 @@
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
-      <artifactId>dapr-sdk-actors</artifactId>
-      <version>1.7.1</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dapr</groupId>
-      <artifactId>dapr-sdk-springboot</artifactId>
-      <version>1.7.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-      <version>2.3.5.RELEASE</version>
-    </dependency>
-    <dependency>
-      <groupId>net.mekstrike</groupId>
-      <artifactId>domain</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <artifactId>dapr-sdk</artifactId>
+      <version>1.10.0</version>
     </dependency>
   </dependencies>
 
@@ -90,7 +75,6 @@
           <plugin>
             <groupId>com.github.os72</groupId>
             <artifactId>protoc-jar-maven-plugin</artifactId>
-            <version>3.11.4</version>
             <executions>
               <execution>
                 <configuration>
@@ -102,7 +86,7 @@
         </plugins>
       </build>
       <activation>
-        <os>
+        <os> 
           <name>mac os x</name>
           <arch>aarch64</arch>
           <family>mac</family>

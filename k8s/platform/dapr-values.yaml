@@ -1,0 +1,5 @@
+  operator:
+    watchInterval: 30s
+
+  dapr_operator:
+    watchInterval: 30s

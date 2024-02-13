@@ -10,8 +10,7 @@
 
 	let canvas;
 
-	let cells = [
-	];
+	let cells = [];
 	let highlights = [];
 
 	let gamedata = { PlayerAUnits: [], PlayerBUnits: [] };
@@ -20,29 +19,17 @@
 	let rows = 0;
 
 	onMount(() => {
-		fetch('/mekstrike/api/battlefield/' + id + '/method/GetBoardCells')
+		fetch('/mekstrike/api/gamemaster/games/' + id + '/board')
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				cells = data;
+				console.log('board');
+				console.log(data);
+				cells = data.cells;
+				cols = parseInt(data.cols);
+				rows = parseInt(data.rows);
 			});
-
-		fetch('/mekstrike/api/battlefield/' + id + '/method/GetNumberOfCols')
-			.then((response) => {
-				return response.text();
-			})
-			.then((data) => {
-				cols = parseInt(data);
-			});
-		fetch('/mekstrike/api/battlefield/' + id + '/method/GetNumberOfRows')
-			.then((response) => {
-				return response.text();
-			})
-			.then((data) => {
-				rows = parseInt(data);
-			});
-
 		refreshGameData();
 	});
 
@@ -52,6 +39,8 @@
 				return response.json();
 			})
 			.then((data) => {
+				console.log('gamedata');
+				console.log(data);
 				gamedata = data;
 			});
 		fetch('/mekstrike/api/gamemaster/games/' + id + '/currentOpts')
@@ -60,8 +49,8 @@
 			})
 			.then((data) => {
 				currentOpts = data;
-				highlights = [...currentOpts.AllowedCells];
-				console.log("highlights");
+				highlights = [...currentOpts.AllowedCoordinates];
+				console.log('highlights');
 				console.log(highlights);
 			});
 
@@ -82,16 +71,16 @@
 		style="display:inline"
 	>
 		{#each cells as cell}
-			<Hex row={cell.coordinates.Row + 1} col={cell.coordinates.Col + 1} />
+			<Hex row={cell.coordinates.y} col={cell.coordinates.x} />
 		{/each}
 		{#each highlights as highlight}
-			<Highlight row={highlight.Row + 1} col={highlight.Col + 1} />
+			<Highlight row={highlight.y} col={highlight.x} />
 		{/each}
 		{#each gamedata.PlayerAUnits as unitID}
-			<Unit id={unitID} />
+			<Unit game={id} id={unitID} />
 		{/each}
 		{#each gamedata.PlayerBUnits as unitID}
-			<Unit id={unitID} />
+			<Unit game={id} id={unitID} />
 		{/each}
 	</Canvas>
 </main>

@@ -4,24 +4,26 @@ import java.util.List;
 
 import io.dapr.actors.ActorMethod;
 import io.dapr.actors.ActorType;
+import net.mekstrike.domain.battlefield.Battlefield;
+import net.mekstrike.domain.unit.Unit;
 
 @ActorType(name = "battlefield")
-public interface Battlefield {
+public interface IBattlefield {
     @ActorMethod(name = "GetNumberOfCols")
-    public int getNumberOfCols();
+    int getNumberOfCols();
 
     @ActorMethod(name = "GetNumberOfRows")
-    public int getNumberOfRows();
+    int getNumberOfRows();
 
     @ActorMethod(name = "IsCellBlocked")
-    public boolean isCellBlocked(Coordinates cellRef);
+    boolean isCellBlocked(Battlefield.Coordinates cellRef);
     
     @ActorMethod(name = "BlockCell")
-    public void blockCell(Coordinates cellRef);
+    void blockCell(Battlefield.Coordinates cellRef);
 
     @ActorMethod(name="GetBoardCells")
-    public List<Cell> getBoardCells();
+    List<Battlefield.Cell> getBoardCells();
 
     @ActorMethod(name="GetMovementOptions")
-    public List<Coordinates> getMovementOptions(UnitData unit);
+    List<Battlefield.Coordinates> getMovementOptions(Unit.Data unit);
 }

@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine
+FROM golang:1.21-alpine
 
 WORKDIR /go/src/app
 COPY . .
@@ -6,5 +6,5 @@ COPY . .
 WORKDIR /go/src/app/gamemaster
 RUN go get -d -v ./...
 RUN go install -v ./...
-
+ENV DAPR_CLIENT_TIMEOUT_SECONDS=120
 CMD ["gamemaster"]
