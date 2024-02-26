@@ -75,8 +75,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: mekstrike-library-stripprefix@kubernetescrd
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: /mekstrike/api/library
             pathType: Prefix

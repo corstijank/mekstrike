@@ -55,8 +55,7 @@ metadata:
   namespace: mekstrike
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: "/"
             pathType: Prefix

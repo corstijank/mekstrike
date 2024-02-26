@@ -87,8 +87,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: mekstrike-gamemaster-stripprefix@kubernetescrd,mekstrike-gamemaster-addprefix@kubernetescrd
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: "/mekstrike/api/gamemaster"
             pathType: Prefix

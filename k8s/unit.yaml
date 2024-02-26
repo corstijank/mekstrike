@@ -67,8 +67,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: mekstrike-unit-stripprefix@kubernetescrd,mekstrike-unit-addprefix@kubernetescrd
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: "/mekstrike/api/unit"
             pathType: Prefix

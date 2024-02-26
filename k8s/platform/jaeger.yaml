@@ -20,8 +20,7 @@ metadata:
   namespace: monitoring
 spec:
   rules:
-    - host: "localhost"
-      http:
+    - http:
         paths:
           - pathType: Prefix
             path: "/jaeger"

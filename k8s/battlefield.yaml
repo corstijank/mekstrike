@@ -67,8 +67,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: mekstrike-battlefield-stripprefix@kubernetescrd,mekstrike-battlefield-addprefix@kubernetescrd
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: "/mekstrike/api/battlefield"
             pathType: Prefix

@@ -9,7 +9,9 @@ build_image() {
     local build_context="."
 
     echo -e "${GREEN}Building $image_name${NC}"
-    nerdctl --namespace "$namespace" build -t "mekstrike-$image_name" -f "$dockerfile_path" "$build_context"
+    # nerdctl --namespace "$namespace" build -t "mekstrike-$image_name" -f "$dockerfile_path" "$build_context"
+    # docker build -t "mekstrike-$image_name" -f "$dockerfile_path" "$build_context"
+    minikube image build -p mekstrike -t "mekstrike-$image_name" -f "$dockerfile_path" "$build_context"
     echo -e "${GREEN}Removing $image_name${NC}"
     kubectl delete --ignore-not-found=true -f "k8s/$image_name.yaml"
     echo -e "${GREEN}Deploying $image_name${NC}"

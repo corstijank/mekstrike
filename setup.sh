@@ -5,11 +5,17 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}Adding HELM repositories${NC}" 
 helm repo add dapr https://dapr.github.io/helm-charts/
 helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add traefik https://traefik.github.io/charts
 helm repo update
 
 echo -e "${GREEN}Installing CertManager${NC}" 
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.12.7/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.yaml
 echo -e "${GREEN}Waiting 30s for certmanager  to initialize${NC}" 
+sleep 30
+
+echo -e "${GREEN}Installing Traefik${NC}" 
+helm upgrade --install traefik traefik/traefik --namespace traefik --create-namespace 
+echo -e "${GREEN}Waiting 30s for traefik  to initialize${NC}" 
 sleep 30
 
 echo -e "${GREEN}Installing Opentelemetry Operator${NC}" 
@@ -19,7 +25,7 @@ echo -e "${GREEN}Installing Jaeger Operator${NC}"
 kubectl create namespace observability
 kubectl create namespace monitoring
 
-kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.52.0/jaeger-operator.yaml -n observability # <2>
+kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/latest/download/jaeger-operator.yaml -n observability # <2>
 echo -e "${GREEN}Waiting 30s for otel and jaeger operator to initialize${NC}" 
 sleep 30
 
