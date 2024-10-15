@@ -1,14 +1,14 @@
 <script>
-	import { Canvas, Layer } from 'svelte-canvas';
 	import { onMount } from 'svelte';
+	import { getHexCenter, hexHeight, hexSize, hexWidth } from './board.js';
 	import Hex from './Hex.svelte';
 	import Unit from './Unit.svelte';
 	import event from './store';
 	import Highlight from './Highlight.svelte';
+	import Hexagon from './Terrain.svelte';
+	import Terrain from './Terrain.svelte';
 
 	export let id;
-
-	let canvas;
 
 	let cells = [];
 	let highlights = [];
@@ -17,6 +17,10 @@
 	let currentOpts = { AllowedCells: [] };
 	let cols = 0;
 	let rows = 0;
+
+	// Slightly overdimension board.
+	let boardWidth = 0;
+	let boardHeight = 0;
 
 	onMount(() => {
 		fetch('/mekstrike/api/gamemaster/games/' + id + '/board')
@@ -29,6 +33,9 @@
 				cells = data.cells;
 				cols = parseInt(data.cols);
 				rows = parseInt(data.rows);
+				// This could be slightly cleaner as we know just oversize the board. We should account for the offset if we want to do it cutely
+				boardWidth = (cols + 1) * hexWidth;
+				boardHeight = (rows + 1) * hexHeight;
 			});
 		refreshGameData();
 	});
@@ -63,8 +70,21 @@
 </script>
 
 <main>
+	<div class="hex-board" style="width: {boardWidth}px; height: {boardHeight}px;">
+		<svg width={boardWidth} height={boardHeight}>
+			{#each cells as cell}
+				<Terrain row={cell.coordinates.y} col={cell.coordinates.x} />
+			{/each}
+			{#each gamedata.PlayerAUnits as unitID}
+				<Unit game={id} id={unitID} />
+			{/each}
+			{#each gamedata.PlayerBUnits as unitID}
+				<Unit game={id} id={unitID} />
+			{/each}
+		</svg>
+	</div>
 	<!-- TODO: This width/height is probably magic and won't scale for bigger boards. Test and fix-->
-	<Canvas
+	<!-- <Canvas
 		width={cols * 80}
 		height={rows * 95}
 		on:click={(e) => handleClick(e)}
@@ -82,5 +102,19 @@
 		{#each gamedata.PlayerBUnits as unitID}
 			<Unit game={id} id={unitID} />
 		{/each}
-	</Canvas>
+	</Canvas> -->
 </main>
+
+<style>
+	.hex-board {
+		position: relative;
+		overflow: hidden;
+	}
+	svg {
+		position: absolute;
+		top: 10px;
+		margin-left: auto;
+		margin-right: auto;
+		transform: translateX(-50%);
+	}
+</style>

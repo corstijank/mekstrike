@@ -5,14 +5,21 @@
 	import 'terminal.css';
 </script>
 
+<div class="sidebar">&nbsp;</div>
 <div class="map"><Board id={$page.params.id} /></div>
 <div class="bottombar">
 	<PlayerUnitList id={$page.params.id} />
 </div>
 
 <style>
+	.sidebar {
+		position: fixed; /* Set the navbar to fixed position */
+		left:0vw;
+		width: 20vw; 
+		z-index: 999;
+	}
 	.map {
-		width: 100%;
+		width: 80vw;
 		text-align: center;
 	}
 	.bottombar {
