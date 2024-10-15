@@ -1,37 +1,21 @@
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: zipkin-apm-collector
   namespace: monitoring
 spec:
-  image: otel/opentelemetry-collector-contrib-dev:latest
-  mode: deployment  
-  config: |
+  managementState: managed 
+  config:
     receivers:
       zipkin:
         endpoint: 0.0.0.0:9411
-      otlp:
-        protocols:
-          grpc:
-          http:
-    extensions:
-      health_check:
-      pprof:
-      zpages:
     exporters:
       otlp/jaeger:
         endpoint: jaeger-collector:4317
         tls:
           insecure: true  
     service:
-      extensions: [pprof, zpages, health_check]
       pipelines:
         traces:
-          receivers: [otlp,zipkin]
+          receivers: [zipkin]
           exporters: [otlp/jaeger] 
-        metrics:
-          receivers: [otlp]
-          exporters: [otlp/jaeger]
-        logs:
-          receivers: [otlp]
-          exporters: [otlp/jaeger]
