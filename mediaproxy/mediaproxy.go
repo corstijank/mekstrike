@@ -18,7 +18,7 @@ var chassisSprites = make(map[string]string)
 func main() {
 	log.Printf("### Starting Mekstrike Media Proxy")
 
-	response, err := http.Get("https://raw.githubusercontent.com/MegaMek/megamek/master/megamek/data/images/units/mechset.txt") //use package "net/http"
+	response, err := http.Get("https://raw.githubusercontent.com/MegaMek/megamek/master/megamek/data/images/units/mekset.txt") //use package "net/http"
 	if err != nil {
 		fmt.Println(err)
 		return
