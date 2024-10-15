@@ -5,27 +5,20 @@
 ### Requirements
 
 - Kubernetes with an ability to build images on the nodes. For simplicity sake; docker-desktop or minikube (untested)
+- This will install a traefik ingress. If you already have an ingress, you'll need to fix yourself using the resources in the k8s folder.
 
 ### Quickstart
 
 ```sh
-# Set up a kubernetes platorm
-./k8s/platform/setup.sh
-# This will be downloading bits in the background, meanwhile we'll go ahead and build some images
-# Build images
-./bldImgs.sh
-# Deploy application, make sure dapr is up and running before running this
-./k8s/deploy.sh
-```
+# Set up a kubernetes platorm, with certman, dapr, jaeger, otel
+./setup.sh
 
-### Useful CLI snippets
+# Build and deploy
+./deploy.sh
 
-```sh
-# Open Traefik Dashboard (Open http://localhost:9000/dashboard)
-kubectl port-forward $(kubectl get pods --namespace traefik --selector "app.kubernetes.io/name=traefik" --output=name) 9000:9000 --namespace traefik
+# Incremental deploy
 
-# Get Elastic password:
-kubectl get secret elasticsearch-es-elastic-user -o=jsonpath='{.data.elastic}' --namespace monitoring| base64 --decode; echo
+./deploy.sh ui # or gamemaster, armybuilder, unit, battlefield, etc.
 ```
 
 ## Developing: requirements
