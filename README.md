@@ -85,4 +85,4 @@ desired:
 ### UI
 
 - Svelte webapp
-- CSS: https://terminalcss.xyz/ 
+- CSS: <https://terminalcss.xyz/>
