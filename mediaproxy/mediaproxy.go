@@ -18,7 +18,7 @@ var chassisSprites = make(map[string]string)
 func main() {
 	log.Printf("### Starting Mekstrike Media Proxy")
 
-	response, err := http.Get("https://raw.githubusercontent.com/MegaMek/megamek/master/megamek/data/images/units/mekset.txt") //use package "net/http"
+	response, err := http.Get("https://raw.githubusercontent.com/MegaMek/mm-data/refs/heads/main/data/images/units/mekset.txt") //use package "net/http"
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -61,9 +61,9 @@ func getSprite(rw http.ResponseWriter, r *http.Request) {
 		sprite, found = chassisSprites[strings.Split(u, " ")[0]]
 	}
 
-	url := "https://raw.githubusercontent.com/MegaMek/megamek/master/megamek/data/images/units/" + sprite
+	url := "https://raw.githubusercontent.com/MegaMek/mm-data/refs/heads/main/data/images/units/" + sprite
 	if !found {
-		url = "https://raw.githubusercontent.com/MegaMek/megamek/master/megamek/data/images/units/defaults/default_heavy.png"
+		url = "https://raw.githubusercontent.com/MegaMek/mm-data/refs/heads/main/data/images/units/defaults/default_heavy.png"
 	}
 	response, err := http.Get(url)
 	if err != nil {

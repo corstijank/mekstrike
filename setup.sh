@@ -9,9 +9,9 @@ helm repo add traefik https://traefik.github.io/charts
 helm repo update
 
 echo -e "${GREEN}Installing CertManager${NC}" 
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.yaml
-echo -e "${GREEN}Waiting 30s for certmanager  to initialize${NC}" 
-sleep 30
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml
+echo -e "${GREEN}Waiting 60s for certmanager  to initialize${NC}" 
+sleep 60
 
 echo -e "${GREEN}Installing Traefik${NC}" 
 helm upgrade --install traefik traefik/traefik --namespace traefik --create-namespace 
