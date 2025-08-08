@@ -1,11 +1,8 @@
 <script>
 	import { onMount } from 'svelte';
-	import { getHexCenter, hexHeight, hexSize, hexWidth } from './board.js';
-	import Hex from './Hex.svelte';
+	import {  hexHeight, hexWidth } from './board.js';
 	import Unit from './Unit.svelte';
 	import event from './store';
-	import Highlight from './Highlight.svelte';
-	import Hexagon from './Terrain.svelte';
 	import Terrain from './Terrain.svelte';
 
 	export let id;

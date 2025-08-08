@@ -22,7 +22,6 @@
 				return response.json();
 			})
 			.then((data) => {
-				console.log(data);
 				col = data.location.position.x;
 				row = data.location.position.y;
 				heading = data.location.heading;
