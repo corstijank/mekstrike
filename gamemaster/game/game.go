@@ -55,8 +55,10 @@ type Options struct {
 	CurrentUnitID string
 }
 
-type MoveOptions struct {
+type AvailableActions struct {
 	Options
+	UnitOwner          string
+	ActionType         string
 	AllowedCoordinates []battlefield.Coordinates
 }
 
@@ -198,27 +200,29 @@ func (g *Data) StartGame(ctx context.Context, client dapr.Client) {
 
 }
 
-func (g Data) GetCurrentMoveOptions(ctx context.Context, client dapr.Client) (MoveOptions, error) {
+func (g Data) GetAvailableActions(ctx context.Context, client dapr.Client) (AvailableActions, error) {
 	currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
 	currentUnit := uclient.GetUnitClient(client, currentUnitID)
 	unitData, err := currentUnit.GetData(ctx)
 	if err != nil {
-		return MoveOptions{}, err
+		return AvailableActions{}, err
 	}
 
 	bf := bfclient.GetBattlefieldClient(client, g.Battlefieldld)
 	options, err := bf.GetMovementOptions(ctx, &unitData)
 	if err != nil {
-		return MoveOptions{}, err
+		return AvailableActions{}, err
 	}
 
-	return MoveOptions{
+	return AvailableActions{
 		Options: Options{
 			GameID:        g.ID,
 			CurrentRound:  g.CurrentRound,
 			CurrentPhase:  g.CurrentPhase,
 			CurrentUnitID: currentUnitID,
 		},
+		UnitOwner:          unitData.Owner,
+		ActionType:         "movement",
 		AllowedCoordinates: options}, nil
 
 }
@@ -228,11 +232,116 @@ func (g *Data) NewRound(ctx context.Context, client dapr.Client) {
 	g.CurrentPhase = Movement
 	g.CurrentUnitIdx = 0
 	log.Printf("New Round: %d", g.CurrentRound)
-	log.Printf("Activating unit %s", g.CurrentUnitOrder[g.CurrentUnitIdx])
-	u := uclient.GetUnitClient(client, g.CurrentUnitOrder[g.CurrentUnitIdx])
+	g.activateCurrentUnit(ctx, client)
+}
+
+func (g *Data) activateCurrentUnit(ctx context.Context, client dapr.Client) {
+	if g.CurrentUnitIdx >= len(g.CurrentUnitOrder) {
+		log.Printf("No more units in order, advancing phase or round")
+		return
+	}
+
+	currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
+	log.Printf("Activating unit %s", currentUnitID)
+	
+	u := uclient.GetUnitClient(client, currentUnitID)
 	err := u.SetActive(ctx, true)
 	if err != nil {
 		log.Printf("Error setting active\n%v", err.Error())
+		return
+	}
+
+	// Check if current unit is AI-owned and publish event
+	if g.isAIUnit(currentUnitID) {
+		err := g.publishAITurnEvent(ctx, client, currentUnitID)
+		if err != nil {
+			log.Printf("Error publishing AI turn event: %v", err)
+		}
+	}
+}
+
+func (g *Data) isAIUnit(unitID string) bool {
+	// Check if unit belongs to CPU player
+	for _, cpuUnit := range g.PlayerBUnits {
+		if cpuUnit == unitID {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Data) publishAITurnEvent(ctx context.Context, client dapr.Client, unitID string) error {
+	eventData := map[string]interface{}{
+		"gameId": g.ID,
+		"unitId": unitID,
+		"phase":  g.phaseToString(),
+		"round":  g.CurrentRound,
+	}
+
+	eventJSON, err := json.Marshal(eventData)
+	if err != nil {
+		return err
+	}
+
+	err = client.PublishEvent(ctx, "redis-pubsub", "ai-turn-started", eventJSON)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Published AI turn event: %s", string(eventJSON))
+	return nil
+}
+
+func (g *Data) phaseToString() string {
+	switch g.CurrentPhase {
+	case Movement:
+		return "Movement"
+	case Combat:
+		return "Combat"
+	case End:
+		return "End"
+	default:
+		return "Unknown"
+	}
+}
+
+func (g *Data) AdvanceTurn(ctx context.Context, client dapr.Client) {
+	// Deactivate current unit
+	if g.CurrentUnitIdx < len(g.CurrentUnitOrder) {
+		currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
+		u := uclient.GetUnitClient(client, currentUnitID)
+		err := u.SetActive(ctx, false)
+		if err != nil {
+			log.Printf("Error deactivating unit %s: %v", currentUnitID, err)
+		}
+	}
+
+	// Advance to next unit
+	g.CurrentUnitIdx++
+	
+	// Check if all units have moved in current phase
+	if g.CurrentUnitIdx >= len(g.CurrentUnitOrder) {
+		g.advancePhase(ctx, client)
+	} else {
+		g.activateCurrentUnit(ctx, client)
+	}
+}
+
+func (g *Data) advancePhase(ctx context.Context, client dapr.Client) {
+	switch g.CurrentPhase {
+	case Movement:
+		log.Printf("Advancing to Combat phase")
+		g.CurrentPhase = Combat
+		g.CurrentUnitIdx = 0
+		g.activateCurrentUnit(ctx, client)
+	case Combat:
+		log.Printf("Advancing to End phase")
+		g.CurrentPhase = End
+		g.CurrentUnitIdx = 0
+		g.activateCurrentUnit(ctx, client)
+	case End:
+		log.Printf("Round completed, starting new round")
+		g.NewRound(ctx, client)
 	}
 }
 

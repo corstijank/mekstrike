@@ -22,6 +22,26 @@ spec:
         dapr.io/config: "appconfig"
         dapr.io/sidecar-listen-addresses: "0.0.0.0"
     spec:
+      initContainers:
+      - name: redis-setup
+        image: redis:7-alpine
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "Creating Redis consumer groups for Gamemaster..."
+            redis-cli -h redis-master.redis.svc.cluster.local -p 6379 -a "${REDIS_PASSWORD}" \
+              XGROUP CREATE unit-movement-completed gamemaster-group '$' MKSTREAM || true
+            redis-cli -h redis-master.redis.svc.cluster.local -p 6379 -a "${REDIS_PASSWORD}" \
+              XGROUP CREATE unit-attack-completed gamemaster-group '$' MKSTREAM || true  
+            redis-cli -h redis-master.redis.svc.cluster.local -p 6379 -a "${REDIS_PASSWORD}" \
+              XGROUP CREATE unit-end-phase-completed gamemaster-group '$' MKSTREAM || true
+            redis-cli -h redis-master.redis.svc.cluster.local -p 6379 -a "${REDIS_PASSWORD}" \
+              XGROUP CREATE ai-turn-started gamemaster-group '$' MKSTREAM || true
+            echo "Redis consumer groups created successfully"
+        env:
+        - name: REDIS_PASSWORD
+          value: "Y5anVVb5C8"
       containers:
       - image: mekstrike-gamemaster
         imagePullPolicy: Never

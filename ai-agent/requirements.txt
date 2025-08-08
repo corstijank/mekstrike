@@ -1,0 +1,9 @@
+dapr
+dapr-ext-grpc
+fastapi
+uvicorn
+requests
+pydantic
+python-json-logger
+cloudevents
+nest-asyncio

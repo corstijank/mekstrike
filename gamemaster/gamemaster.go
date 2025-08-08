@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"sort"
@@ -29,11 +32,18 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/games/{id}", getGame).Methods("GET")
-	r.HandleFunc("/games/{id}/currentOpts", getCurrentOptions).Methods("GET")
+	r.HandleFunc("/games/{id}/availableActions", getAvailableActions).Methods("GET")
 	r.HandleFunc("/games/{id}/board", getBoard).Methods("GET")
 	r.HandleFunc("/games/{id}/units/{uid}", getUnit).Methods("GET")
+	r.HandleFunc("/games/{id}/advanceTurn", advanceTurn).Methods("POST")
 	r.HandleFunc("/games", newGame).Methods("POST")
 	r.HandleFunc("/games", getGames).Methods("GET")
+	
+	// Dapr pub/sub event handlers
+	r.HandleFunc("/dapr/subscribe", getDaprSubscriptions).Methods("GET")
+	r.HandleFunc("/unit-movement-completed", handleMovementCompleted).Methods("POST")
+	r.HandleFunc("/unit-attack-completed", handleAttackCompleted).Methods("POST")
+	r.HandleFunc("/unit-end-phase-completed", handleEndPhaseCompleted).Methods("POST")
 
 	log.Printf("Starting Mekstrike gamemaster")
 	log.Fatal(http.ListenAndServe(":7011", r))
@@ -53,9 +63,9 @@ func getGames(rw http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(result, rw)
 }
 
-func getCurrentOptions(rw http.ResponseWriter, r *http.Request) {
+func getAvailableActions(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	options, err := games[id].GetCurrentMoveOptions(r.Context(), client)
+	options, err := games[id].GetAvailableActions(r.Context(), client)
 	if err != nil {
 		http.Error(rw, "Oh no", 500)
 	}
@@ -80,7 +90,7 @@ func getBoard(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(rw, "Error getting rows", 500)
 	}
-	writeJSONResponse(map[string]interface{}{"cells": cells, "rows": rows, "cols": cols}, rw)
+	writeJSONResponse(map[string]any{"cells": cells, "rows": rows, "cols": cols}, rw)
 }
 
 func getUnit(rw http.ResponseWriter, r *http.Request) {
@@ -125,7 +135,217 @@ func newGame(rw http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(g, rw)
 }
 
-func writeJSONResponse(obj interface{}, w http.ResponseWriter) {
+func advanceTurn(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := mux.Vars(r)["id"]
+	
+	g := games[id]
+	if g == nil {
+		http.Error(rw, "Game not found", 404)
+		return
+	}
+	
+	g.AdvanceTurn(ctx, client)
+	writeJSONResponse(g, rw)
+}
+
+type DaprSubscription struct {
+	PubsubName string `json:"pubsubname"`
+	Topic      string `json:"topic"`
+	Route      string `json:"route"`
+}
+
+type ActionCompletedEvent struct {
+	GameId string `json:"GameId"`
+	UnitId string `json:"UnitId"`
+	Phase  string `json:"Phase"`
+}
+
+type CloudEvent struct {
+	Data            string `json:"data"`
+	DataContentType string `json:"datacontenttype"`
+	ID              string `json:"id"`
+	PubsubName      string `json:"pubsubname"`
+	Source          string `json:"source"`
+	SpecVersion     string `json:"specversion"`
+	Time            string `json:"time"`
+	Topic           string `json:"topic"`
+	Type            string `json:"type"`
+}
+
+func parseActionCompletedEvent(r *http.Request) (*ActionCompletedEvent, error) {
+	// Try to parse as CloudEvent first
+	var cloudEvent CloudEvent
+	body := make([]byte, 0)
+	if data, err := io.ReadAll(r.Body); err == nil {
+		body = data
+		r.Body = io.NopCloser(bytes.NewReader(body)) // Reset body for potential re-read
+	}
+
+	if err := json.Unmarshal(body, &cloudEvent); err == nil && cloudEvent.Data != "" {
+		// Successfully parsed as CloudEvent, now parse the nested data
+		log.Printf("Parsing CloudEvent: data=%s, topic=%s, type=%s", cloudEvent.Data, cloudEvent.Topic, cloudEvent.Type)
+		
+		var event ActionCompletedEvent
+		if err := json.Unmarshal([]byte(cloudEvent.Data), &event); err != nil {
+			return nil, fmt.Errorf("failed to parse CloudEvent data field: %v", err)
+		}
+		
+		log.Printf("Parsed CloudEvent data: %+v", event)
+		return &event, nil
+	}
+
+	// Fall back to direct parsing (backward compatibility)
+	log.Printf("Trying direct parsing of body: %s", string(body))
+	var event ActionCompletedEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		return nil, fmt.Errorf("failed to parse as both CloudEvent and direct ActionCompletedEvent: %v", err)
+	}
+	
+	log.Printf("Parsed direct event: %+v", event)
+	return &event, nil
+}
+
+func getDaprSubscriptions(w http.ResponseWriter, r *http.Request) {
+	subscriptions := []DaprSubscription{
+		{
+			PubsubName: "redis-pubsub",
+			Topic:      "unit-movement-completed",
+			Route:      "unit-movement-completed",
+		},
+		{
+			PubsubName: "redis-pubsub",
+			Topic:      "unit-attack-completed",
+			Route:      "unit-attack-completed",
+		},
+		{
+			PubsubName: "redis-pubsub",
+			Topic:      "unit-end-phase-completed",
+			Route:      "unit-end-phase-completed",
+		},
+	}
+	writeJSONResponse(subscriptions, w)
+}
+
+func handleMovementCompleted(w http.ResponseWriter, r *http.Request) {
+	event, err := parseActionCompletedEvent(r)
+	if err != nil {
+		log.Printf("Error parsing movement completed event: %v", err)
+		http.Error(w, "Invalid event data", 400)
+		return
+	}
+	
+	log.Printf("Received movement completed event: %+v", *event)
+	
+	// Idempotency check: verify this event matches current game state
+	if g := games[event.GameId]; g != nil {
+		if !isValidPhaseEvent(g, event.UnitId, event.Phase, "Movement") {
+			log.Printf("Ignoring duplicate or out-of-order movement event for game %s, unit %s", event.GameId, event.UnitId)
+			w.WriteHeader(200) // Still return success to avoid retries
+			return
+		}
+		
+		g.AdvanceTurn(r.Context(), client)
+		log.Printf("Advanced turn for game %s after movement completion", event.GameId)
+	} else {
+		log.Printf("No game found with ID %s for movement completion", event.GameId)
+	}
+	
+	w.WriteHeader(200)
+}
+
+func handleAttackCompleted(w http.ResponseWriter, r *http.Request) {
+	event, err := parseActionCompletedEvent(r)
+	if err != nil {
+		log.Printf("Error parsing attack completed event: %v", err)
+		http.Error(w, "Invalid event data", 400)
+		return
+	}
+	
+	log.Printf("Received attack completed event: %+v", *event)
+	
+	// Idempotency check: verify this event matches current game state
+	if g := games[event.GameId]; g != nil {
+		if !isValidPhaseEvent(g, event.UnitId, event.Phase, "Combat") {
+			log.Printf("Ignoring duplicate or out-of-order attack event for game %s, unit %s", event.GameId, event.UnitId)
+			w.WriteHeader(200) // Still return success to avoid retries
+			return
+		}
+		
+		g.AdvanceTurn(r.Context(), client)
+		log.Printf("Advanced turn for game %s after attack completion", event.GameId)
+	} else {
+		log.Printf("No game found with ID %s for attack completion", event.GameId)
+	}
+	
+	w.WriteHeader(200)
+}
+
+func handleEndPhaseCompleted(w http.ResponseWriter, r *http.Request) {
+	event, err := parseActionCompletedEvent(r)
+	if err != nil {
+		log.Printf("Error parsing end phase completed event: %v", err)
+		http.Error(w, "Invalid event data", 400)
+		return
+	}
+	
+	log.Printf("Received end phase completed event: %+v", *event)
+	
+	// Idempotency check: verify this event matches current game state
+	if g := games[event.GameId]; g != nil {
+		if !isValidPhaseEvent(g, event.UnitId, event.Phase, "End") {
+			log.Printf("Ignoring duplicate or out-of-order end phase event for game %s, unit %s", event.GameId, event.UnitId)
+			w.WriteHeader(200) // Still return success to avoid retries
+			return
+		}
+		
+		g.AdvanceTurn(r.Context(), client)
+		log.Printf("Advanced turn for game %s after end phase completion", event.GameId)
+	} else {
+		log.Printf("No game found with ID %s for end phase completion", event.GameId)
+	}
+	
+	w.WriteHeader(200)
+}
+
+// isValidPhaseEvent checks if the received event matches the current game state
+// This prevents duplicate processing of the same phase completion
+func isValidPhaseEvent(g *game.Data, unitId, eventPhase, expectedPhase string) bool {
+	// Check if we're in the expected phase
+	currentPhaseName := getPhaseString(g.CurrentPhase)
+	if currentPhaseName != expectedPhase {
+		return false
+	}
+	
+	// Check if it's the right unit's turn
+	if g.CurrentUnitIdx >= len(g.CurrentUnitOrder) {
+		return false
+	}
+	
+	currentUnitId := g.CurrentUnitOrder[g.CurrentUnitIdx]
+	if currentUnitId != unitId {
+		return false
+	}
+	
+	// Verify the phase in the event matches expected phase
+	return eventPhase == expectedPhase
+}
+
+// getPhaseString converts Phase enum to string
+func getPhaseString(phase game.Phase) string {
+	switch phase {
+	case game.Movement:
+		return "Movement"
+	case game.Combat:
+		return "Combat"
+	case game.End:
+		return "End"
+	default:
+		return "Unknown"
+	}
+}
+
+func writeJSONResponse(obj any, w http.ResponseWriter) {
 	js, err := json.Marshal(obj)
 	if err != nil {
 		log.Printf("%v\n", err)

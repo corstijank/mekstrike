@@ -57,7 +57,7 @@ desired:
 
 ### battlefield
 
-- .NET
+- java
 - Actor
   - Given board x, can a unit move from x to y?
   - etc
@@ -86,3 +86,4 @@ desired:
 
 - Svelte webapp
 - CSS: <https://terminalcss.xyz/>
+

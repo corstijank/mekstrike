@@ -120,6 +120,7 @@ func randomUnitsFromTypeAndClass(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error translating to unitstats: %+v", err)
 	}
+	log.Printf("%+v", result)
 	writeJSONResponse(&result[rand.Intn(len(result))], rw)
 }
 

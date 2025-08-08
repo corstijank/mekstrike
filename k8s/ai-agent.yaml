@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ai-agent
+  name: ai-agent
+  namespace: mekstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-agent
+  template:
+    metadata:
+      labels:
+        app: ai-agent
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "ai-agent"
+        dapr.io/app-port: "50051"
+        dapr.io/app-protocol: "http"
+        dapr.io/log-as-json: "true"
+        dapr.io/config: "appconfig"
+        dapr.io/sidecar-listen-addresses: "0.0.0.0"
+    spec:
+      initContainers:
+      - name: redis-setup
+        image: redis:7-alpine
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "Creating Redis consumer groups for AI Agent..."
+            redis-cli -h redis-master.redis.svc.cluster.local -p 6379 -a "${REDIS_PASSWORD}" \
+              XGROUP CREATE ai-turn-started ai-agent-group '$' MKSTREAM || true
+            echo "Redis consumer groups created successfully"
+        env:
+        - name: REDIS_PASSWORD
+          value: "Y5anVVb5C8"
+      containers:
+      - image: mekstrike-ai-agent
+        imagePullPolicy: Never
+        name: ai-agent
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 50051
+          protocol: TCP
+        - containerPort: 8000
+          protocol: TCP
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ai-agent-svc
+  name: ai-agent-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 50051
+    protocol: TCP
+    targetPort: 50051
+    name: grpc
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+    name: http
+  selector:
+    app: ai-agent

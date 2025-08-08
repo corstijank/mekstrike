@@ -4,6 +4,8 @@
 	import Unit from './Unit.svelte';
 	import event from './store';
 	import Terrain from './Terrain.svelte';
+	import Highlight from './Highlight.svelte';
+	import ActiveUnitHighlight from './ActiveUnitHighlight.svelte';
 
 	export let id;
 
@@ -11,7 +13,8 @@
 	let highlights = [];
 
 	let gamedata = { PlayerAUnits: [], PlayerBUnits: [] };
-	let currentOpts = { AllowedCells: [] };
+	let availableActions = { UnitOwner: '', AllowedCoordinates: [], CurrentUnitID: '' };
+	let activeUnitPosition = null;
 	let cols = 0;
 	let rows = 0;
 
@@ -47,13 +50,31 @@
 				console.log(data);
 				gamedata = data;
 			});
-		fetch('/mekstrike/api/gamemaster/games/' + id + '/currentOpts')
+		fetch('/mekstrike/api/gamemaster/games/' + id + '/availableActions')
 			.then((response) => {
 				return response.json();
 			})
 			.then((data) => {
-				currentOpts = data;
-				highlights = [...currentOpts.AllowedCoordinates];
+				availableActions = data;
+				// Only show highlights for player units (not CPU)
+				if (availableActions.UnitOwner && availableActions.UnitOwner !== 'CPU') {
+					highlights = [...availableActions.AllowedCoordinates];
+				} else {
+					highlights = [];
+				}
+				
+				// Get active unit position for highlighting
+				if (availableActions.CurrentUnitID) {
+					fetch('/mekstrike/api/gamemaster/games/' + id + '/units/' + availableActions.CurrentUnitID)
+						.then((response) => response.json())
+						.then((unitData) => {
+							activeUnitPosition = {
+								x: unitData.location.position.x,
+								y: unitData.location.position.y
+							};
+						});
+				}
+				
 				console.log('highlights');
 				console.log(highlights);
 			});
@@ -72,6 +93,12 @@
 			{#each cells as cell}
 				<Terrain row={cell.coordinates.y} col={cell.coordinates.x} />
 			{/each}
+			{#if activeUnitPosition}
+				<ActiveUnitHighlight row={activeUnitPosition.y} col={activeUnitPosition.x} />
+			{/if}
+			{#each highlights as highlight}
+				<Highlight row={highlight.y} col={highlight.x} />
+			{/each}
 			{#each gamedata.PlayerAUnits as unitID}
 				<Unit game={id} id={unitID} />
 			{/each}
@@ -80,26 +107,6 @@
 			{/each}
 		</svg>
 	</div>
-	<!-- TODO: This width/height is probably magic and won't scale for bigger boards. Test and fix-->
-	<!-- <Canvas
-		width={cols * 80}
-		height={rows * 95}
-		on:click={(e) => handleClick(e)}
-		style="display:inline"
-	>
-		{#each cells as cell}
-			<Hex row={cell.coordinates.y} col={cell.coordinates.x} />
-		{/each}
-		{#each highlights as highlight}
-			<Highlight row={highlight.y} col={highlight.x} />
-		{/each}
-		{#each gamedata.PlayerAUnits as unitID}
-			<Unit game={id} id={unitID} />
-		{/each}
-		{#each gamedata.PlayerBUnits as unitID}
-			<Unit game={id} id={unitID} />
-		{/each}
-	</Canvas> -->
 </main>
 
 <style>

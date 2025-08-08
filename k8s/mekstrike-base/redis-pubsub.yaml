@@ -1,0 +1,28 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-pubsub
+  namespace: mekstrike
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-master.redis.svc.cluster.local:6379
+  - name: redisPassword
+    value: Y5anVVb5C8
+  - name: consumerID
+    value: "{podName}"
+  - name: enableTLS
+    value: "false"
+  - name: processingTimeout
+    value: "60s"
+  - name: redeliverInterval
+    value: "15s"
+  - name: queueDepth
+    value: "100"
+  - name: maxLen
+    value: "50"
+scopes:
+- gamemaster
+- ai-agent

@@ -24,6 +24,7 @@ kubectl apply -f k8s/mekstrike-base/mekstrike-instrumentation.yaml
 kubectl apply -f k8s/mekstrike-base/mekstrike-config.yaml
 kubectl apply -f k8s/mekstrike-base/library-store.yaml
 kubectl apply -f k8s/mekstrike-base/battlefield-store.yaml
+kubectl apply -f k8s/mekstrike-base/redis-pubsub.yaml
 
 echo -e "${GREEN}Generating protos${NC}"
 protoc --proto_path="." --go_out=. --go_opt=paths=source_relative domain/unit/unit.proto
@@ -39,6 +40,7 @@ if [ $# -eq 0 ]; then
     build_image "unit"
     build_image "gamemaster"
     build_image "mediaproxy"
+    build_image "ai-agent"
     build_image "ui"
     exit 0
 fi

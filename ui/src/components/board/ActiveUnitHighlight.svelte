@@ -20,7 +20,7 @@
 
 <polygon 
 	{points} 
-	fill="rgba(0, 150, 255, 0.3)" 
-	stroke="rgba(0, 150, 255, 0.6)" 
-	stroke-width="2"
+	fill="rgba(255, 165, 0, 0.4)" 
+	stroke="rgba(255, 165, 0, 0.8)" 
+	stroke-width="3"
 />
