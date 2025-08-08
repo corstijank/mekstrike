@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/corstijank/mekstrike/gamemaster/clients/uclient"
@@ -13,6 +14,7 @@ func (g *Data) NewRound(ctx context.Context, client dapr.Client) {
 	g.CurrentPhase = Movement
 	g.CurrentUnitIdx = 0
 	log.Printf("New Round: %d", g.CurrentRound)
+	g.LogSystemEvent(fmt.Sprintf("Round %d started", g.CurrentRound))
 	g.activateCurrentUnit(ctx, client)
 }
 
@@ -42,11 +44,13 @@ func (g *Data) advancePhase(ctx context.Context, client dapr.Client) {
 	switch g.CurrentPhase {
 	case Movement:
 		log.Printf("Advancing to Combat phase")
+		g.LogSystemEvent("Combat phase started")
 		g.CurrentPhase = Combat
 		g.CurrentUnitIdx = 0
 		g.activateCurrentUnit(ctx, client)
 	case Combat:
 		log.Printf("Advancing to End phase")
+		g.LogSystemEvent("End phase started")
 		g.CurrentPhase = End
 		g.CurrentUnitIdx = 0
 		g.activateCurrentUnit(ctx, client)

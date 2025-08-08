@@ -10,11 +10,31 @@
 		messageContainer.scrollTop = messageContainer.scrollHeight;
 	}
 
+	async function fetchGameLogs() {
+		if (!gameId) return;
+		
+		try {
+			const response = await fetch(`/mekstrike/api/gamemaster/games/${gameId}/logs`);
+			if (response.ok) {
+				const logs = await response.json();
+				gameMessages.set(logs.map(log => ({
+					type: log.type,
+					message: log.message,
+					timestamp: new Date(log.timestamp)
+				})));
+			}
+		} catch (error) {
+			console.error('Error fetching game logs:', error);
+		}
+	}
+
 	onMount(() => {
-		gameMessages.update(() => [
-			{ type: 'system', message: 'Game started', timestamp: new Date() },
-			{ type: 'info', message: 'Waiting for player actions...', timestamp: new Date() }
-		]);
+		fetchGameLogs();
+		
+		// Poll for updates every 3 seconds
+		const interval = setInterval(fetchGameLogs, 3000);
+		
+		return () => clearInterval(interval);
 	});
 
 	function formatTime(timestamp) {
@@ -82,30 +102,36 @@
 
 	.message-text {
 		word-wrap: break-word;
+		color: #ffffff;
 	}
 
 	.message-combat {
 		border-left-color: #ff4444;
-		background-color: rgba(255, 68, 68, 0.1);
+		background-color: rgba(255, 68, 68, 0.2);
+		color: #ffcccc;
 	}
 
 	.message-movement {
 		border-left-color: #4488ff;
-		background-color: rgba(68, 136, 255, 0.1);
+		background-color: rgba(68, 136, 255, 0.2);
+		color: #ccddff;
 	}
 
 	.message-system {
 		border-left-color: #44ff44;
-		background-color: rgba(68, 255, 68, 0.1);
+		background-color: rgba(68, 255, 68, 0.2);
+		color: #ccffcc;
 	}
 
 	.message-error {
 		border-left-color: #ff8844;
-		background-color: rgba(255, 136, 68, 0.1);
+		background-color: rgba(255, 136, 68, 0.2);
+		color: #ffddcc;
 	}
 
 	.message-info {
 		border-left-color: #888;
-		background-color: rgba(136, 136, 136, 0.1);
+		background-color: rgba(136, 136, 136, 0.2);
+		color: #dddddd;
 	}
 </style>

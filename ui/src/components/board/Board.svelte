@@ -6,7 +6,6 @@
 	import Terrain from './Terrain.svelte';
 	import Highlight from './Highlight.svelte';
 	import ActiveUnitHighlight from './ActiveUnitHighlight.svelte';
-	import { addGameMessage } from '../../stores/gameStores.js';
 
 	export let id;
 
@@ -55,8 +54,7 @@
 				
 				if (previousPhase !== -1 && previousPhase !== data.CurrentPhase) {
 					const phases = ['Movement', 'Combat', 'End'];
-					addGameMessage('system', `Phase changed to: ${phases[data.CurrentPhase]}`);
-				}
+					}
 				previousPhase = data.CurrentPhase;
 				
 				gamedata = data;
@@ -69,21 +67,18 @@
 				availableActions = data;
 				
 				if (previousActiveUnit !== '' && previousActiveUnit !== availableActions.CurrentUnitID) {
-					addGameMessage('info', `New active unit: ${availableActions.CurrentUnitID}`);
-				}
+					}
 				previousActiveUnit = availableActions.CurrentUnitID;
 				
 				// Only show highlights for player units (not CPU)
 				if (availableActions.UnitOwner && availableActions.UnitOwner !== 'CPU') {
 					highlights = [...availableActions.AllowedCoordinates];
 					if (availableActions.UnitOwner !== 'CPU') {
-						addGameMessage('movement', `Your turn to move unit ${availableActions.CurrentUnitID}`);
-					}
+						}
 				} else {
 					highlights = [];
 					if (availableActions.UnitOwner === 'CPU') {
-						addGameMessage('info', `CPU is thinking...`);
-					}
+						}
 				}
 				
 				// Get active unit position for highlighting

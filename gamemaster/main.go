@@ -48,6 +48,7 @@ func main() {
 	r.HandleFunc("/games/{id}/availableActions", gameHandlers.GetAvailableActions).Methods("GET")
 	r.HandleFunc("/games/{id}/board", gameHandlers.GetBoard).Methods("GET")
 	r.HandleFunc("/games/{id}/units/{uid}", gameHandlers.GetUnit).Methods("GET")
+	r.HandleFunc("/games/{id}/logs", gameHandlers.GetGameLogs).Methods("GET")
 	r.HandleFunc("/games/{id}/advanceTurn", gameHandlers.AdvanceTurn).Methods("POST")
 	r.HandleFunc("/games", gameHandlers.NewGame).Methods("POST")
 	r.HandleFunc("/games", gameHandlers.GetGames).Methods("GET")

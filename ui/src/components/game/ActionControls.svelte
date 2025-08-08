@@ -1,5 +1,4 @@
 <script>
-	import { addGameMessage } from '../../stores/gameStores.js';
 
 	export let gameId;
 	export let availableActions;
@@ -19,13 +18,11 @@
 				}
 			});
 			
-			if (response.ok) {
-				addGameMessage('system', 'Turn advanced');
-			} else {
-				addGameMessage('error', 'Failed to advance turn');
+			if (!response.ok) {
+				console.error('Failed to advance turn');
 			}
 		} catch (error) {
-			addGameMessage('error', `Error advancing turn: ${error.message}`);
+			console.error('Error advancing turn:', error.message);
 		} finally {
 			isAdvancing = false;
 		}

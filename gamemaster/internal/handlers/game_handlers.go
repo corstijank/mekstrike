@@ -208,6 +208,32 @@ func (h *GameHandlers) AdvanceTurn(rw http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(gameData, rw)
 }
 
+func (h *GameHandlers) GetGameLogs(rw http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	
+	gameData, err := h.repository.Get(r.Context(), id)
+	if err != nil {
+		if gameErr, ok := err.(*types.GameError); ok {
+			http.Error(rw, gameErr.Message, gameErr.Code)
+			return
+		}
+		http.Error(rw, "Internal server error", 500)
+		return
+	}
+	
+	// Transform CloudEvents to UI-compatible format
+	messages := make([]map[string]interface{}, 0, len(gameData.GameLogs))
+	for _, event := range gameData.GameLogs {
+		messages = append(messages, map[string]interface{}{
+			"type":      event.Type,
+			"message":   event.Data,
+			"timestamp": event.Time,
+		})
+	}
+	
+	writeJSONResponse(messages, rw)
+}
+
 func writeJSONResponse(obj any, w http.ResponseWriter) {
 	js, err := json.Marshal(obj)
 	if err != nil {

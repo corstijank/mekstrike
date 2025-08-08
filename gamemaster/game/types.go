@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/corstijank/mekstrike/domain/battlefield"
+	"github.com/corstijank/mekstrike/gamemaster/internal/types"
 )
 
 type Player int
@@ -36,6 +37,7 @@ type Data struct {
 	CurrentPhase     Phase
 	CurrentUnitIdx   int
 	CurrentUnitOrder []string
+	GameLogs         []types.CloudEvent
 }
 
 type Options struct {

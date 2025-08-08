@@ -63,7 +63,7 @@ func (h *EventHandlers) HandleEndPhaseCompleted(w http.ResponseWriter, r *http.R
 }
 
 func (h *EventHandlers) handlePhaseCompleted(w http.ResponseWriter, r *http.Request, expectedPhase string) {
-	event, err := parseActionCompletedEvent(r)
+	event, cloudEvent, err := parseActionCompletedEvent(r)
 	if err != nil {
 		log.Printf("Error parsing %s completed event: %v", expectedPhase, err)
 		http.Error(w, "Invalid event data", 400)
@@ -86,6 +86,11 @@ func (h *EventHandlers) handlePhaseCompleted(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	
+	// Store the CloudEvent in game logs if it was a proper CloudEvent
+	if cloudEvent != nil {
+		gameData.GameLogs = append(gameData.GameLogs, *cloudEvent)
+	}
+	
 	gameData.AdvanceTurn(r.Context(), h.client)
 	
 	err = h.repository.Save(r.Context(), gameData)
@@ -97,7 +102,7 @@ func (h *EventHandlers) handlePhaseCompleted(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(200)
 }
 
-func parseActionCompletedEvent(r *http.Request) (*types.ActionCompletedEvent, error) {
+func parseActionCompletedEvent(r *http.Request) (*types.ActionCompletedEvent, *types.CloudEvent, error) {
 	// Try to parse as CloudEvent first
 	var cloudEvent types.CloudEvent
 	body := make([]byte, 0)
@@ -112,22 +117,22 @@ func parseActionCompletedEvent(r *http.Request) (*types.ActionCompletedEvent, er
 		
 		var event types.ActionCompletedEvent
 		if err := json.Unmarshal([]byte(cloudEvent.Data), &event); err != nil {
-			return nil, fmt.Errorf("failed to parse CloudEvent data field: %v", err)
+			return nil, nil, fmt.Errorf("failed to parse CloudEvent data field: %v", err)
 		}
 		
 		log.Printf("Parsed CloudEvent data: %+v", event)
-		return &event, nil
+		return &event, &cloudEvent, nil
 	}
 
 	// Fall back to direct parsing (backward compatibility)
 	log.Printf("Trying direct parsing of body: %s", string(body))
 	var event types.ActionCompletedEvent
 	if err := json.Unmarshal(body, &event); err != nil {
-		return nil, fmt.Errorf("failed to parse as both CloudEvent and direct ActionCompletedEvent: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse as both CloudEvent and direct ActionCompletedEvent: %v", err)
 	}
 	
 	log.Printf("Parsed direct event: %+v", event)
-	return &event, nil
+	return &event, nil, nil
 }
 
 // isValidPhaseEvent checks if the received event matches the current game state

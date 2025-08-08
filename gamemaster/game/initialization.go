@@ -144,5 +144,6 @@ func (g *Data) StartGame(ctx context.Context, client dapr.Client) {
 		g.CurrentUnitOrder = unitOrder
 	}
 
+	g.LogSystemEvent("Game started")
 	g.NewRound(ctx, client)
 }
