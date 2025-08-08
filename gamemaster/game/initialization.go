@@ -1,0 +1,148 @@
+package game
+
+import (
+	"context"
+	"log"
+	"math/rand"
+	"time"
+
+	unitType "github.com/corstijank/mekstrike/domain/unit"
+	"github.com/corstijank/mekstrike/gamemaster/clients/armybuilder"
+	"github.com/corstijank/mekstrike/gamemaster/clients/bfclient"
+	"github.com/corstijank/mekstrike/gamemaster/clients/uclient"
+	dapr "github.com/dapr/go-sdk/client"
+	uuid "github.com/satori/go.uuid"
+)
+
+func New(ctx context.Context, client dapr.Client, playername string) (Data, error) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		log.Println(err)
+	}
+
+	abc, err := armybuilder.New(client)
+	if err != nil {
+		return Data{}, err
+	}
+	armyA, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	if err != nil {
+		return Data{}, err
+	}
+	armyB, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	if err != nil {
+		return Data{}, err
+	}
+
+	log.Printf("Force A: %+v\n", armyA)
+	log.Printf("Force B: %+v\n", armyB)
+
+	bf := bfclient.GetBattlefieldClient(client, id.String())
+	if err != nil {
+		return Data{}, err
+	}
+	// Should make an init here
+	_, err = bf.GetBoardCells(ctx)
+	if err != nil {
+		return Data{}, err
+	}
+	playerAUnits := make([]string, 0)
+	valueA := 0
+	for _, u := range armyA {
+		valueA += int(u.Pointvalue)
+		// Should make DaprClient a parameter to skip useless inits in client
+		newUnit := uclient.NewUnit(client, bf.ID(), playername, u)
+		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: playername, Stats: u, Corner: "NE"})
+		if err != nil {
+			return Data{}, err
+		}
+		playerAUnits = append(playerAUnits, newUnit.ID())
+	}
+
+	playerBUnits := make([]string, 0)
+	valueB := 0
+	for _, u := range armyB {
+		valueB += int(u.Pointvalue)
+		newUnit := uclient.NewUnit(client, bf.ID(), "CPU", u)
+		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: "CPU", Stats: u, Corner: "SW"})
+		if err != nil {
+			return Data{}, err
+		}
+		playerBUnits = append(playerBUnits, newUnit.ID())
+	}
+
+	return Data{
+		ID:            id.String(),
+		StartTime:     time.Now(),
+		PlayerA:       playername,
+		PlayerAValue:  valueA,
+		PlayerAUnits:  playerAUnits,
+		PlayerB:       "CPU",
+		PlayerBValue:  valueB,
+		PlayerBUnits:  playerBUnits,
+		Battlefieldld: bf.ID(),
+		ActivePlayer:  PlayerA,
+		CurrentRound:  0,
+		CurrentPhase:  Movement,
+	}, nil
+}
+
+func (g *Data) StartGame(ctx context.Context, client dapr.Client) {
+	randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	g.CurrentRound = 0
+
+	unitsA := make([]string, 0)
+	unitsA = append(unitsA, g.PlayerAUnits...)
+	randomizer.Shuffle(len(unitsA), func(i, j int) { unitsA[i], unitsA[j] = unitsA[j], unitsA[i] })
+
+	unitsB := make([]string, 0)
+	unitsB = append(unitsB, g.PlayerBUnits...)
+	randomizer.Shuffle(len(unitsB), func(i, j int) { unitsB[i], unitsB[j] = unitsB[j], unitsB[i] })
+
+	// Roll for initiative!
+	if randomizer.Intn(100) <= 50 {
+		// Player A starts
+		g.ActivePlayer = PlayerA
+
+		unitOrder := make([]string, 0)
+		for {
+			var unitA, unitB string
+
+			if len(unitsA) >= 1 {
+				unitA, unitsA = unitsA[0], unitsA[1:]
+				unitOrder = append(unitOrder, unitA)
+			}
+			if len(unitsB) >= 1 {
+				unitB, unitsB = unitsB[0], unitsB[1:]
+				unitOrder = append(unitOrder, unitB)
+			}
+			if len(unitsA) == 0 && len(unitsB) == 0 {
+				break
+			}
+		}
+		g.CurrentUnitOrder = unitOrder
+	} else {
+		//Player B starts
+		g.ActivePlayer = PlayerB
+
+		unitOrder := make([]string, 0)
+		for {
+			var unitA, unitB string
+
+			if len(unitsB) >= 1 {
+				unitB, unitsB = unitsB[0], unitsB[1:]
+				unitOrder = append(unitOrder, unitB)
+			}
+			if len(unitsA) >= 1 {
+				unitA, unitsA = unitsA[0], unitsA[1:]
+				unitOrder = append(unitOrder, unitA)
+			}
+			if len(unitsA) == 0 && len(unitsB) == 0 {
+				break
+			}
+		}
+		g.CurrentUnitOrder = unitOrder
+	}
+
+	g.NewRound(ctx, client)
+}
