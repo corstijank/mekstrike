@@ -33,12 +33,12 @@ class GamemasterClient:
             logger.error(f"Error getting game {game_id}: {e}")
             raise
     
-    async def get_current_options(self, game_id: str) -> Dict[str, Any]:
+    async def get_available_actions(self, game_id: str) -> Dict[str, Any]:
         """Get current movement options for active unit"""
         try:
             response = await self.dapr_client.invoke_method_async(
                 app_id=self.service_name,
-                method_name=f"games/{game_id}/currentOpts",
+                method_name=f"games/{game_id}/availableActions",
                 data=b'',
                 http_verb="GET"
             )

@@ -116,9 +116,9 @@ async def process_ai_turn(turn_data: Dict[str, Any]) -> None:
         board_data = await gamemaster.get_board(game_id)
         logger.info(f"Board data: {board_data}")
         
-        logger.info("Fetching move options...")
-        move_options = await gamemaster.get_current_options(game_id)
-        logger.info(f"Move options: {move_options}")
+        logger.info("Fetching available actions...")
+        move_options = await gamemaster.get_available_actions(game_id)
+        logger.info(f"available options: {move_options}")
         
         # Execute AI strategy based on phase
         if phase == "Movement":
