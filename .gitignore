@@ -45,3 +45,4 @@ nb-configuration.xml
 # NodeJS
 node_modules
 **/public/build
+gamemaster/gamemaster

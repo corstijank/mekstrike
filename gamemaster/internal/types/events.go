@@ -7,9 +7,14 @@ type DaprSubscription struct {
 }
 
 type ActionCompletedEvent struct {
-	GameId string `json:"GameId"`
-	UnitId string `json:"UnitId"`
-	Phase  string `json:"Phase"`
+	GameId         string            `json:"GameId"`
+	UnitId         string            `json:"UnitId"`
+	Phase          string            `json:"Phase"`
+	BattlefieldId  string            `json:"BattlefieldId,omitempty"`
+	SourceLocation map[string]int    `json:"SourceLocation,omitempty"`
+	TargetLocation map[string]int    `json:"TargetLocation,omitempty"`
+	TargetId       string            `json:"TargetId,omitempty"`
+	Unit           map[string]interface{} `json:"Unit,omitempty"`
 }
 
 type CloudEvent struct {

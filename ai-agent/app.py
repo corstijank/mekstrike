@@ -56,26 +56,43 @@ async def ai_turn_handler(request: Request):
         body = await request.body()
         data = json.loads(body)
        
+        logger.debug(f"Raw data: {data}")
+        logger.debug(f"Raw data type: {type(data)}")
+        
         # Handle CloudEvent wrapper if present
-        if 'data' in data:
-            # The data field is a JSON string, parse it again
-            if isinstance(data['data'], str):
-                turn_data = json.loads(data['data'])
-                logger.debug(f"Parsed data field as JSON: {turn_data}")
-            else:
-                turn_data = data['data']
-                logger.debug(f"Using data field directly: {turn_data}")
-        else:
-            turn_data = data
-            logger.debug(f"Using raw data: {turn_data}")
+        turn_data = data  # Start with the raw data
+        nesting_level = 0
+        
+        # Unwrap nested CloudEvents up to 3 levels deep
+        while nesting_level < 3 and isinstance(turn_data, dict) and 'data' in turn_data:
+            logger.debug(f"Nesting level {nesting_level}, found 'data' field")
+            logger.debug(f"turn_data['data'] type: {type(turn_data['data'])}")
+            logger.debug(f"turn_data['data'] content: {turn_data['data']}")
             
+            if isinstance(turn_data['data'], str):
+                try:
+                    parsed_data = json.loads(turn_data['data'])
+                    turn_data = parsed_data
+                    logger.debug(f"Parsed data field as JSON: {turn_data}")
+                    logger.debug(f"Parsed turn_data type: {type(turn_data)}")
+                    nesting_level += 1
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse data field as JSON: {e}")
+                    break
+            else:
+                turn_data = turn_data['data']
+                logger.debug(f"Using data field directly: {turn_data}")
+                nesting_level += 1
+        
         logger.debug(f"Final turn_data type: {type(turn_data)}")
+        logger.debug(f"Final turn_data content: {turn_data}")
         logger.info(f"🎯 Processing AI turn event: {turn_data}")
         
         # Process the AI turn asynchronously
         await process_ai_turn(turn_data)
         
-        logger.info(f"✅ Successfully processed AI turn for unit: {turn_data.get('unitId', 'unknown')}")
+        unit_id = turn_data.get('unitId', 'unknown') if isinstance(turn_data, dict) else 'unknown'
+        logger.info(f"✅ Successfully processed AI turn for unit: {unit_id}")
         return {"status": "success"}
         
     except Exception as e:
@@ -86,12 +103,30 @@ async def process_ai_turn(turn_data: Dict[str, Any]) -> None:
     """Process an AI turn based on the current game state"""
     global dapr_client
     
+    # Ensure turn_data is a dictionary
+    if not isinstance(turn_data, dict):
+        logger.error(f"Invalid turn_data type: {type(turn_data)}, expected dict")
+        return
+    
     game_id = turn_data.get('gameId')
     unit_id = turn_data.get('unitId')
     phase = turn_data.get('phase')
     round_num = turn_data.get('round')
     
     logger.info(f"Processing AI turn - Game: {game_id}, Unit: {unit_id}, Phase: {phase}, Round: {round_num}")
+    
+    # Validate required fields
+    if not game_id:
+        logger.error("Missing gameId in turn_data")
+        return
+        
+    if not unit_id:
+        logger.error("Missing unitId in turn_data")
+        return
+        
+    if not phase:
+        logger.error("Missing phase in turn_data")
+        return
     
     try:
         # Use the global DaprClient instance

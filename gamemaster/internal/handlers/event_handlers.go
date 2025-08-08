@@ -116,7 +116,9 @@ func parseActionCompletedEvent(r *http.Request) (*types.ActionCompletedEvent, *t
 		log.Printf("Parsing CloudEvent: data=%s, topic=%s, type=%s", cloudEvent.Data, cloudEvent.Topic, cloudEvent.Type)
 		
 		var event types.ActionCompletedEvent
+		log.Printf("Attempting to parse CloudEvent data field: %s", cloudEvent.Data)
 		if err := json.Unmarshal([]byte(cloudEvent.Data), &event); err != nil {
+			log.Printf("Failed to parse CloudEvent data field: %v", err)
 			return nil, nil, fmt.Errorf("failed to parse CloudEvent data field: %v", err)
 		}
 		

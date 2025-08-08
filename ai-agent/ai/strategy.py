@@ -19,6 +19,11 @@ class AIStrategy:
         """Execute AI movement phase"""
         logger.info(f"AI executing movement for unit {unit_data.get('stats', {}).get('model', 'Unknown')} (ID: {unit_id})")
         
+        # Store movement data for event enrichment
+        source_position = unit_data.get('location', {}).get('position', {})
+        battlefield_id = unit_data.get('location', {}).get('battlefieldId', '')
+        target_position = {}
+        
         try:
             self.unit_client = UnitClient(dapr_client)
             
@@ -26,7 +31,7 @@ class AIStrategy:
             allowed_coords = move_options.get('AllowedCoordinates', [])
             if not allowed_coords:
                 logger.info("No movement options available, skipping movement")
-                await self._publish_movement_completed(dapr_client, game_data, unit_id)
+                await self._publish_movement_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_position)
                 return
             
             # Find enemy units on the board
@@ -40,22 +45,28 @@ class AIStrategy:
             if best_position:
                 # TODO: Execute movement once unit actor supports it
                 logger.info(f"AI would move to position: {best_position}")
+                target_position = best_position
                 # await self.unit_client.move_unit(unit_id, best_position)
             else:
                 logger.info("No beneficial movement found, staying in place")
             
             # Publish movement completion event
-            await self._publish_movement_completed(dapr_client, game_data, unit_id)
+            await self._publish_movement_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_position)
                 
         except Exception as e:
             logger.error(f"Error executing AI movement: {e}")
             # Still publish completion to avoid hanging the game
-            await self._publish_movement_completed(dapr_client, game_data, unit_id)
+            await self._publish_movement_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_position)
     
     async def execute_combat(self, dapr_client: DaprClient, game_data: Dict[str, Any],
                            unit_data: Dict[str, Any], board_data: Dict[str, Any], unit_id: str) -> None:
         """Execute AI combat phase"""
         logger.info(f"AI executing combat for unit {unit_data.get('stats', {}).get('model', 'Unknown')} (ID: {unit_id})")
+        
+        # Store combat data for event enrichment
+        source_position = unit_data.get('location', {}).get('position', {})
+        battlefield_id = unit_data.get('location', {}).get('battlefieldId', '')
+        target_id = ""
         
         try:
             self.unit_client = UnitClient(dapr_client)
@@ -70,6 +81,7 @@ class AIStrategy:
                 if best_target:
                     # TODO: Execute attack once unit actor supports it
                     logger.info(f"AI would attack target: {best_target.get('id', 'Unknown')}")
+                    target_id = best_target.get('id', '')
                     # await self.unit_client.attack_unit(unit_id, best_target['id'])
                 else:
                     logger.info("No suitable attack target found")
@@ -77,17 +89,21 @@ class AIStrategy:
                 logger.info("No targets in range for combat")
             
             # Publish attack completion event
-            await self._publish_attack_completed(dapr_client, game_data, unit_id)
+            await self._publish_attack_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_id)
                 
         except Exception as e:
             logger.error(f"Error executing AI combat: {e}")
             # Still publish completion to avoid hanging the game
-            await self._publish_attack_completed(dapr_client, game_data, unit_id)
+            await self._publish_attack_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_id)
     
     async def execute_end_phase(self, dapr_client: DaprClient, game_data: Dict[str, Any],
                               unit_data: Dict[str, Any], unit_id: str) -> None:
         """Execute AI end phase"""
         logger.info(f"AI executing end phase for unit {unit_data.get('stats', {}).get('model', 'Unknown')} (ID: {unit_id})")
+        
+        # Store end phase data for event enrichment
+        source_position = unit_data.get('location', {}).get('position', {})
+        battlefield_id = unit_data.get('location', {}).get('battlefieldId', '')
         
         try:
             # End phase typically involves cleanup, status effects, etc.
@@ -95,12 +111,12 @@ class AIStrategy:
             logger.info("AI end phase completed")
             
             # Publish end phase completion event
-            await self._publish_end_phase_completed(dapr_client, game_data, unit_id)
+            await self._publish_end_phase_completed(dapr_client, game_data, unit_id, battlefield_id, source_position)
             
         except Exception as e:
             logger.error(f"Error executing AI end phase: {e}")
             # Still publish completion to avoid hanging the game
-            await self._publish_end_phase_completed(dapr_client, game_data, unit_id)
+            await self._publish_end_phase_completed(dapr_client, game_data, unit_id, battlefield_id, source_position)
     
     def _find_enemy_units(self, game_data: Dict[str, Any], current_unit: Dict[str, Any], 
                          board_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -185,14 +201,35 @@ class AIStrategy:
         # Hex grids have more complex distance calculations
         return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     
-    async def _publish_movement_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str) -> None:
+    async def _publish_movement_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str, battlefield_id: str, source_position: Dict[str, int], target_position: Dict[str, int]) -> None:
         """Publish unit movement completed event"""
         try:
             import json
+            import uuid
+            from datetime import datetime
+            
+            # Get current unit data for enrichment
+            unit_data = {}
+            try:
+                unit_data = await self.unit_client.get_unit(unit_id) if self.unit_client else {}
+            except Exception as e:
+                logger.warning(f"Could not fetch unit data for event enrichment: {e}")
+            
+            # Create enriched event data
             event_data = {
                 "GameId": game_data.get('ID'),
                 "UnitId": unit_id,
-                "Phase": "Movement"
+                "Phase": "Movement",
+                "BattlefieldId": battlefield_id,
+                "SourceLocation": source_position,
+                "TargetLocation": target_position,
+                "Unit": {
+                    "Id": unit_id,
+                    "Model": unit_data.get('stats', {}).get('model', 'Unknown'),
+                    "Owner": unit_data.get('owner', 'Unknown'),
+                    "Position": unit_data.get('location', {}).get('position', {}),
+                    "Status": unit_data.get('status', {})
+                }
             }
             
             dapr_client.publish_event(
@@ -201,19 +238,40 @@ class AIStrategy:
                 data=json.dumps(event_data)
             )
             
-            logger.info(f"Published unit-movement-completed: {event_data}")
+            logger.info(f"Published enriched unit-movement-completed: {event_data}")
             
         except Exception as e:
             logger.error(f"Error publishing movement completed event: {e}")
     
-    async def _publish_attack_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str) -> None:
+    async def _publish_attack_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str, battlefield_id: str, source_position: Dict[str, int], target_id: str) -> None:
         """Publish unit attack completed event"""
         try:
             import json
+            import uuid
+            from datetime import datetime
+            
+            # Get current unit data for enrichment
+            unit_data = {}
+            try:
+                unit_data = await self.unit_client.get_unit(unit_id) if self.unit_client else {}
+            except Exception as e:
+                logger.warning(f"Could not fetch unit data for event enrichment: {e}")
+            
+            # Create enriched event data
             event_data = {
                 "GameId": game_data.get('ID'),
                 "UnitId": unit_id,
-                "Phase": "Combat"
+                "Phase": "Combat",
+                "BattlefieldId": battlefield_id,
+                "SourceLocation": source_position,
+                "TargetId": target_id,
+                "Unit": {
+                    "Id": unit_id,
+                    "Model": unit_data.get('stats', {}).get('model', 'Unknown'),
+                    "Owner": unit_data.get('owner', 'Unknown'),
+                    "Position": unit_data.get('location', {}).get('position', {}),
+                    "Status": unit_data.get('status', {})
+                }
             }
             
             dapr_client.publish_event(
@@ -222,19 +280,39 @@ class AIStrategy:
                 data=json.dumps(event_data)
             )
             
-            logger.info(f"Published unit-attack-completed: {event_data}")
+            logger.info(f"Published enriched unit-attack-completed: {event_data}")
             
         except Exception as e:
             logger.error(f"Error publishing attack completed event: {e}")
     
-    async def _publish_end_phase_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str) -> None:
+    async def _publish_end_phase_completed(self, dapr_client: DaprClient, game_data: Dict[str, Any], unit_id: str, battlefield_id: str, source_position: Dict[str, int]) -> None:
         """Publish unit end phase completed event"""
         try:
             import json
+            import uuid
+            from datetime import datetime
+            
+            # Get current unit data for enrichment
+            unit_data = {}
+            try:
+                unit_data = await self.unit_client.get_unit(unit_id) if self.unit_client else {}
+            except Exception as e:
+                logger.warning(f"Could not fetch unit data for event enrichment: {e}")
+            
+            # Create enriched event data
             event_data = {
                 "GameId": game_data.get('ID'),
                 "UnitId": unit_id,
-                "Phase": "End"
+                "Phase": "End",
+                "BattlefieldId": battlefield_id,
+                "SourceLocation": source_position,
+                "Unit": {
+                    "Id": unit_id,
+                    "Model": unit_data.get('stats', {}).get('model', 'Unknown'),
+                    "Owner": unit_data.get('owner', 'Unknown'),
+                    "Position": unit_data.get('location', {}).get('position', {}),
+                    "Status": unit_data.get('status', {})
+                }
             }
             
             dapr_client.publish_event(
@@ -243,7 +321,7 @@ class AIStrategy:
                 data=json.dumps(event_data)
             )
             
-            logger.info(f"Published unit-end-phase-completed: {event_data}")
+            logger.info(f"Published enriched unit-end-phase-completed: {event_data}")
             
         except Exception as e:
             logger.error(f"Error publishing end phase completed event: {e}")
