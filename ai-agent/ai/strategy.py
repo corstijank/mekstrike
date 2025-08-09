@@ -43,20 +43,28 @@ class AIStrategy:
             )
             
             if best_position:
-                # TODO: Execute movement once unit actor supports it
-                logger.info(f"AI would move to position: {best_position}")
+                # Execute movement using unit actor
+                logger.info(f"AI moving to position: {best_position}")
                 target_position = best_position
-                # await self.unit_client.move_unit(unit_id, best_position)
+                # Choose a tactical heading (for now, random 0-5)
+                new_heading = random.randint(0, 5)
+                await self.unit_client.move_unit(unit_id, best_position, new_heading)
+                logger.info(f"AI successfully moved unit {unit_id} to {best_position} with heading {new_heading}")
             else:
                 logger.info("No beneficial movement found, staying in place")
-            
-            # Publish movement completion event
-            await self._publish_movement_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_position)
+                # Unit actor will still publish event for "no movement" case
+                # Create a move to the same position to trigger the event but potentially change heading
+                current_position = unit_data.get('location', {}).get('position', {})
+                if current_position:
+                    # Maybe change heading even if not moving
+                    new_heading = random.randint(0, 5)
+                    await self.unit_client.move_unit(unit_id, current_position, new_heading)
+                    logger.info(f"AI unit {unit_id} stayed in place at {current_position} but changed heading to {new_heading}")
                 
         except Exception as e:
             logger.error(f"Error executing AI movement: {e}")
-            # Still publish completion to avoid hanging the game
-            await self._publish_movement_completed(dapr_client, game_data, unit_id, battlefield_id, source_position, target_position)
+            # Don't publish events manually anymore - rely on Unit actor
+            # If Unit actor failed, the game state will handle the error appropriately
     
     async def execute_combat(self, dapr_client: DaprClient, game_data: Dict[str, Any],
                            unit_data: Dict[str, Any], board_data: Dict[str, Any], unit_id: str) -> None:

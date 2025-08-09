@@ -208,6 +208,70 @@ func (h *GameHandlers) AdvanceTurn(rw http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(gameData, rw)
 }
 
+func (h *GameHandlers) MoveUnit(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := mux.Vars(r)["id"]
+	
+	gameData, err := h.repository.Get(ctx, id)
+	if err != nil {
+		if gameErr, ok := err.(*types.GameError); ok {
+			http.Error(rw, gameErr.Message, gameErr.Code)
+			return
+		}
+		http.Error(rw, "Internal server error", 500)
+		return
+	}
+	
+	var moveReq types.MoveRequest
+	if r.Body == nil {
+		http.Error(rw, "Please send a request body", 400)
+		return
+	}
+	
+	err = json.NewDecoder(r.Body).Decode(&moveReq)
+	if err != nil {
+		log.Printf("Error decoding move request: %v", err)
+		http.Error(rw, "Invalid request body", 400)
+		return
+	}
+	
+	// Validate that it's the current player's turn and the unit is active
+	currentUnitID := gameData.CurrentUnitOrder[gameData.CurrentUnitIdx]
+	if moveReq.UnitId != currentUnitID {
+		http.Error(rw, "It's not this unit's turn", 400)
+		return
+	}
+	
+	// Execute the move
+	uc := uclient.GetUnitClient(h.client, moveReq.UnitId)
+	
+	// Create move request map with coordinates and heading
+	moveRequestMap := map[string]interface{}{
+		"x":       moveReq.X,
+		"y":       moveReq.Y,
+		"heading": moveReq.Heading,
+	}
+	
+	err = uc.Move(ctx, moveRequestMap)
+	if err != nil {
+		log.Printf("Error moving unit: %v", err)
+		http.Error(rw, "Error executing move", 500)
+		return
+	}
+	
+	log.Printf("Successfully moved unit %s to (%d, %d) with heading %d", moveReq.UnitId, moveReq.X, moveReq.Y, moveReq.Heading)
+	
+	// Return success response
+	writeJSONResponse(map[string]interface{}{
+		"success": true,
+		"message": "Unit moved successfully",
+		"unitId":  moveReq.UnitId,
+		"x":       moveReq.X,
+		"y":       moveReq.Y,
+		"heading": moveReq.Heading,
+	}, rw)
+}
+
 func (h *GameHandlers) GetGameLogs(rw http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	

@@ -35,6 +35,24 @@ spec:
 
 ---
 
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: unit-svc
+  name: unit-svc
+  namespace: mekstrike
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app: unit
+
+---
+
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

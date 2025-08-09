@@ -5,6 +5,8 @@
 - [X] Fix UI unit data presentation DMG (s/m/l/overheat)
 - [X] Refactor UI project structure
 - [ ] Implement unit movement
+- [ ] Make unit movement be a protobuf message, it's too 'all over' now
+- [ ] Update ai-agent for more 'sensical' unit movement
 - [ ] Implement firing
 
 ## Spikes

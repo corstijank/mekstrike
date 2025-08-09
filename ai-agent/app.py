@@ -43,7 +43,8 @@ async def subscribe():
         {
             "pubsubname": "redis-pubsub",
             "topic": "ai-turn-started", 
-            "route": "ai-turn-started"
+            "route": "ai-turn-started",
+            "consumerGroup": "ai-agent-group"
         }
     ]
     return subscriptions

@@ -20,6 +20,9 @@ public interface IBattlefield {
     
     @ActorMethod(name = "BlockCell")
     void blockCell(Battlefield.Coordinates cellRef);
+    
+    @ActorMethod(name = "UnblockCell")
+    void unblockCell(Battlefield.Coordinates cellRef);
 
     @ActorMethod(name="GetBoardCells")
     List<Battlefield.Cell> getBoardCells();

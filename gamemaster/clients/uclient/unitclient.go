@@ -13,6 +13,7 @@ type UnitClient struct {
 	Deploy    func(context.Context, unit.DeployRequest) error
 	SetActive func(context.Context, bool) error
 	GetData   func(context.Context) (unit.Data, error)
+	Move      func(context.Context, interface{}) error
 }
 
 func NewUnit(client dapr.Client, battlefiedID string, player string, stats *unit.Stats) *UnitClient {

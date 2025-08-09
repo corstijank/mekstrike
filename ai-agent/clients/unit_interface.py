@@ -6,3 +6,6 @@ class UnitActorInterface:
     
     async def SetActive(self, active: bool) -> None:
         pass
+    
+    async def Move(self, move_request: Dict[str, int]) -> None:
+        pass

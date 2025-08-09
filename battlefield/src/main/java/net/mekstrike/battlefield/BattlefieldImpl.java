@@ -88,6 +88,19 @@ public class BattlefieldImpl extends AbstractActor implements IBattlefield {
 
         saveBattlefield().block();
     }
+    
+    @Override
+    public void unblockCell(Battlefield.Coordinates cellRef) {
+        LOGGER.info("UnblockCell called");
+        var h = getHex(cellRef.getX(),
+                cellRef.getY());
+        if (!h.getSatelliteData().isPresent()) {
+            h.setSatelliteData(new BattlefieldHexData());
+        }
+        h.getSatelliteData().get().setOccupied(false);
+
+        saveBattlefield().block();
+    }
 
     @Override
     public List<Battlefield.Coordinates> getMovementOptions(Unit.Data unit) {

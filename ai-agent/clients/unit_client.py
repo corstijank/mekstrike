@@ -36,13 +36,26 @@ class UnitClient:
             logger.error(f"Error setting unit {unit_id} active={active}: {e}")
             raise
     
-    async def move_unit(self, unit_id: str, coordinates: Dict[str, int]) -> None:
-        """Move unit to specified coordinates"""
+    async def move_unit(self, unit_id: str, coordinates: Dict[str, int], heading: int = None) -> None:
+        """Move unit to specified coordinates with optional heading"""
         try:
-            # TODO: Implement movement method once unit actor supports it
-            logger.info(f"Moving unit {unit_id} to {coordinates}")
-            # This will need to be implemented in the unit actor
-            pass
+            # Create move request with coordinates and heading
+            move_request = {
+                "x": coordinates["x"],
+                "y": coordinates["y"]
+            }
+            
+            # Add heading if provided
+            if heading is not None:
+                move_request["heading"] = heading
+                
+            logger.info(f"Moving unit {unit_id} to {move_request}")
+            
+            # Create actor proxy
+            proxy = ActorProxy.create(self.actor_type, ActorId(unit_id), UnitActorInterface)
+            # Call the Move method with move request
+            await proxy.Move(move_request)
+            logger.info(f"Successfully moved unit {unit_id} to {move_request}")
         except Exception as e:
             logger.error(f"Error moving unit {unit_id}: {e}")
             raise
