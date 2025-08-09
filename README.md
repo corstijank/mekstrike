@@ -10,6 +10,9 @@
 ### Quickstart
 
 ```sh
+# OSX: Start minikube; For other OS's, use your K8s flavor of choice
+minikube start --driver vfkit --network vmnet-shared --cpus=8 --memory=12G --profile mekstrike
+
 # Set up a kubernetes platorm, with certman, dapr, jaeger, otel
 ./setup.sh
 
@@ -17,16 +20,16 @@
 ./deploy.sh
 
 # Incremental deploy
-
 ./deploy.sh ui # or gamemaster, armybuilder, unit, battlefield, etc.
 ```
 
 ## Developing: requirements
 
-- GoLang 1.16 (or later)
-- DotNet 6.0 (or later)
-- Java 16 (or later)
-- Maven (something recent)
+- GoLang 
+- DotNet 
+- Java 
+- Maven 
+- Node
 
 ## Components
 
@@ -67,16 +70,19 @@ desired:
 - Java
 - Actor
   - Move here
-  - Fire here
-  - handle IncomingFire
-  - etc
+  - Fire there
+  - Handle IncomingFire?
   - knows which map its on, and its location
+
+### AI-Agent
+- Python
+- Reacts to events in the game to move AI units, declare AI shots, etc
 
 ### fireControlSystem
 
-- Python for shits and giggles?
+- C#
   - will translate *shots* to *incoming fire*, given RNG and all kinds of considerations;
-  - Client -> Unit(fire) -> FireControlSystem(verifyShot) -> target(processIncoming)
+  - CLIENT -> source unit(fire) -> FireControlSystem(verifyShot) -> target unit(processIncoming)
   
 ### API Gateway
 
