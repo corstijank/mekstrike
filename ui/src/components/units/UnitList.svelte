@@ -1,42 +1,21 @@
 <script>
-	import { onMount } from 'svelte';
-	import SmallUnitIcon from './SmallUnitIcon.svelte';
-	import { selectedUnit } from '../../stores/gameStores.js';
+	import UnitIcon from './UnitIcon.svelte';
+	import { gameState, availableActions, currentGamePhase, currentPlayer } from '../../stores/gameStore.js';
 
 	export let id;
 
-	let gamedata = { PlayerAUnits: [], PlayerBUnits: [], CurrentRound: 0, CurrentPhase: 0, ActivePlayer: 0 };
-	let availableActions = { UnitOwner: '', CurrentUnitID: '', ActionType: '' };
-
-	function refreshData() {
-		fetch('/mekstrike/api/gamemaster/games/' + id)
-			.then((response) => response.json())
-			.then((data) => {
-				gamedata = data;
-			});
-		
-		fetch('/mekstrike/api/gamemaster/games/' + id + '/availableActions')
-			.then((response) => response.json())
-			.then((data) => {
-				availableActions = data;
-			});
-	}
-
-	onMount(() => {
-		refreshData();
-		const interval = setInterval(refreshData, 2000);
-		return () => clearInterval(interval);
-	});
-
-	const phases = ['Movement', 'Combat', 'End'];
-	const players = ['Player A', 'Player B'];
+	// Subscribe to stores
+	$: gamedata = $gameState;
+	$: actions = $availableActions;
+	$: phase = $currentGamePhase;
+	$: player = $currentPlayer;
 </script>
 
 <div class="bottom-container">
 	<div class="roster-header">
 		<h4>Army Overview</h4>
 		<div class="game-status">
-			Round {gamedata.CurrentRound} • {phases[gamedata.CurrentPhase]} Phase • {players[gamedata.ActivePlayer]}'s Turn
+			Round {gamedata.CurrentRound} • {phase} Phase • {player}'s Turn
 		</div>
 	</div>
 	
@@ -45,7 +24,7 @@
 			<span class="player-label">Player A:</span>
 			<div class="unitlist">
 				{#each gamedata.PlayerAUnits as unitID}
-					<SmallUnitIcon {unitID} gameId={id} isActive={availableActions.CurrentUnitID === unitID} />
+					<UnitIcon {unitID} gameId={id} isActive={actions.CurrentUnitID === unitID} />
 				{/each}
 			</div>
 		</div>
@@ -54,7 +33,7 @@
 			<span class="player-label">Player B:</span>
 			<div class="unitlist">
 				{#each gamedata.PlayerBUnits as unitID}
-					<SmallUnitIcon {unitID} gameId={id} isActive={availableActions.CurrentUnitID === unitID} />
+					<UnitIcon {unitID} gameId={id} isActive={actions.CurrentUnitID === unitID} />
 				{/each}
 			</div>
 		</div>

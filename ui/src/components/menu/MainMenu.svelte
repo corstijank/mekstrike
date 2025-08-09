@@ -15,7 +15,6 @@
 				return response.json();
 			})
 			.then((data) => {
-				console.log(games);
 				games = [...data];
 			});
     }

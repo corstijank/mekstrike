@@ -1,6 +1,6 @@
 <!-- Hexagon.svelte -->
 <script>
-	import { colToCenterX, hexSize, rowToCenterY } from './board';
+	import { colToCenterX, hexSize, rowToCenterY } from '../../utils/coordinates.js';
 
 	export let row = 0;
 	export let col = 0;

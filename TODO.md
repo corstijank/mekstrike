@@ -1,8 +1,9 @@
 # TODO list
 
-- [ ] Add full data to CloudEvents so they can be used as proper event stores
-- [ ] Fix CloudEvent JSON presentation in UI
-- [ ] Fix UI unit data presentation DMG (s/m/l/overheat)
+- [X] Add full data to CloudEvents so they can be used as proper event stores
+- [X] Fix CloudEvent JSON presentation in UI
+- [X] Fix UI unit data presentation DMG (s/m/l/overheat)
+- [X] Refactor UI project structure
 - [ ] Implement unit movement
 - [ ] Implement firing
 

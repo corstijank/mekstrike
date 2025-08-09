@@ -1,7 +1,9 @@
 <script>
 	import Board from './Board.svelte';
-	import { clearSelection, scrollToUnit } from '../../stores/gameStores.js';
-	import { colToCenterX, rowToCenterY } from './board.js';
+	import { clearSelection } from '../../stores/unitStore.js';
+	import { scrollToPosition, clearScrollPosition } from '../../stores/battlefieldStore.js';
+	import { colToCenterX, rowToCenterY } from '../../utils/coordinates.js';
+	import { getScrollPosition } from '../../services/battlefieldService.js';
 
 	export let id;
 
@@ -14,26 +16,22 @@
 		clearSelection();
 	}
 
-	$: if ($scrollToUnit && boardViewport) {
-		centerOnUnit($scrollToUnit.x, $scrollToUnit.y);
-		scrollToUnit.set(null);
+	// Watch for scroll position changes
+	$: if ($scrollToPosition && boardViewport) {
+		centerOnUnit($scrollToPosition.x, $scrollToPosition.y);
+		clearScrollPosition();
 	}
 
 	function centerOnUnit(col, row) {
 		if (!boardViewport) return;
 		
-		const x = colToCenterX(col);
-		const y = rowToCenterY(row, col);
-		
 		const viewportWidth = boardViewport.clientWidth;
 		const viewportHeight = boardViewport.clientHeight;
-		
-		const scrollX = x - (viewportWidth / 2) + 50;
-		const scrollY = y - (viewportHeight / 2) + 50;
+		const { scrollX, scrollY } = getScrollPosition(col, row, viewportWidth, viewportHeight);
 		
 		boardViewport.scrollTo({
-			left: Math.max(0, scrollX),
-			top: Math.max(0, scrollY),
+			left: scrollX,
+			top: scrollY,
 			behavior: 'smooth'
 		});
 	}
