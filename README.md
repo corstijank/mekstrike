@@ -11,7 +11,7 @@
 
 ```sh
 # OSX: Start minikube; For other OS's, use your K8s flavor of choice
-minikube start --driver vfkit --network vmnet-shared --cpus=8 --memory=12G --profile mekstrike
+minikube start --driver vfkit --network vmnet-shared --cpus=8 --memory=12g --disk-size=60g --profile mekstrike
 
 # Set up a kubernetes platorm, with certman, dapr, jaeger, otel
 ./setup.sh

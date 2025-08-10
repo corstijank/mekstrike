@@ -80,6 +80,21 @@ export const gameAPI = {
     },
 
     /**
+     * Move unit to specified coordinates with heading
+     */
+    async moveUnit(gameId, unitId, x, y, heading) {
+        return apiRequest(`${GAMEMASTER_BASE}/games/${gameId}/move`, {
+            method: 'POST',
+            body: JSON.stringify({
+                unitId,
+                x,
+                y,
+                heading
+            }),
+        });
+    },
+
+    /**
      * Advance turn (end current unit's turn)
      */
     async advanceTurn(gameId) {
