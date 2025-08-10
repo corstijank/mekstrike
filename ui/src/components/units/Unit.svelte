@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { colToCenterX, hexSize, rowToCenterY } from '../../utils/coordinates.js';
 	import { selectedUnit, selectUnit, clearSelection, loadUnitData } from '../../stores/unitStore.js';
+	import { gameState } from '../../stores/gameStore.js';
+	import { boardVersion } from '../../stores/battlefieldStore.js';
 	import { gameAPI } from '../../services/gameAPI.js';
 
 	export let game;
@@ -24,10 +26,14 @@
 	$: y = rowToCenterY(row, col);
 	$: isSelected = $selectedUnit === id;
 
-	onMount(async () => {
+	// Reactive function to load unit data
+	async function loadUnit() {
 		try {
 			loading = true;
 			const data = await gameAPI.getUnit(game, id);
+			
+			const oldCol = col;
+			const oldRow = row;
 			
 			col = data.location.position.x;
 			row = data.location.position.y;
@@ -38,13 +44,43 @@
 			active = data.active;
 			unitData = data;
 			error = null;
+			
 		} catch (err) {
 			console.error(`Failed to load unit ${id}:`, err);
 			error = err.message;
 		} finally {
 			loading = false;
 		}
+	}
+
+	// Load unit data on mount
+	onMount(() => {
+		loadUnit();
 	});
+
+	// Track last known state to detect changes
+	let lastRound = -1;
+	let lastPhase = -1;
+	let lastBoardVersion = -1;
+	
+	// Reactively reload unit data when round or phase changes (indicates unit movement/turn advance)
+	$: if ($gameState && ($gameState.CurrentRound !== lastRound || $gameState.CurrentPhase !== lastPhase)) {
+		// Only reload if we've seen an initial load and state actually changed
+		if (lastRound >= 0 && !loading) {
+			loadUnit();
+		}
+		lastRound = $gameState.CurrentRound;
+		lastPhase = $gameState.CurrentPhase;
+	}
+	
+	// Reactively reload unit data when board is refreshed (indicates WebSocket unit position updates)
+	$: if ($boardVersion && $boardVersion !== lastBoardVersion) {
+		// Only reload if we've seen an initial load and version actually changed
+		if (lastBoardVersion >= 0 && !loading) {
+			loadUnit();
+		}
+		lastBoardVersion = $boardVersion;
+	}
 
 	function handleUnitClick(event) {
 		event.stopPropagation();

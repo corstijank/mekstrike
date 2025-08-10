@@ -11,6 +11,7 @@ import (
 	"github.com/corstijank/mekstrike/gamemaster/game"
 	"github.com/corstijank/mekstrike/gamemaster/internal/config"
 	"github.com/corstijank/mekstrike/gamemaster/internal/repository"
+	"github.com/corstijank/mekstrike/gamemaster/internal/services"
 	"github.com/corstijank/mekstrike/gamemaster/internal/types"
 	dapr "github.com/dapr/go-sdk/client"
 )
@@ -19,13 +20,15 @@ type EventHandlers struct {
 	client     dapr.Client
 	repository repository.GameRepository
 	config     *config.Config
+	wsService  *services.WebSocketService
 }
 
-func NewEventHandlers(client dapr.Client, repo repository.GameRepository, cfg *config.Config) *EventHandlers {
+func NewEventHandlers(client dapr.Client, repo repository.GameRepository, cfg *config.Config, ws *services.WebSocketService) *EventHandlers {
 	return &EventHandlers{
 		client:     client,
 		repository: repo,
 		config:     cfg,
+		wsService:  ws,
 	}
 }
 
@@ -89,6 +92,8 @@ func (h *EventHandlers) handlePhaseCompleted(w http.ResponseWriter, r *http.Requ
 	// Store the CloudEvent in game logs if it was a proper CloudEvent
 	if cloudEvent != nil {
 		gameData.GameLogs = append(gameData.GameLogs, *cloudEvent)
+		// Broadcast the CloudEvent to WebSocket clients
+		h.wsService.BroadcastToGame(event.GameId, *cloudEvent)
 	}
 	
 	gameData.AdvanceTurn(r.Context(), h.client)

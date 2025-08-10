@@ -31,10 +31,11 @@ func main() {
 	// Initialize services
 	gameService := services.NewGameService(client, gameRepo)
 	eventService := services.NewEventService(client, gameRepo)
+	wsService := services.NewWebSocketService()
 	
 	// Initialize handlers
 	gameHandlers := handlers.NewGameHandlers(client, gameRepo)
-	eventHandlers := handlers.NewEventHandlers(client, gameRepo, cfg)
+	eventHandlers := handlers.NewEventHandlers(client, gameRepo, cfg, wsService)
 	
 	// Setup router
 	r := mux.NewRouter()
@@ -53,6 +54,9 @@ func main() {
 	r.HandleFunc("/games/{id}/advanceTurn", gameHandlers.AdvanceTurn).Methods("POST")
 	r.HandleFunc("/games", gameHandlers.NewGame).Methods("POST")
 	r.HandleFunc("/games", gameHandlers.GetGames).Methods("GET")
+	
+	// WebSocket endpoint for real-time game updates
+	r.HandleFunc("/ws/games/{id}", wsService.HandleWebSocketConnection)
 	
 	// Dapr pub/sub event handlers
 	r.HandleFunc("/dapr/subscribe", eventHandlers.GetDaprSubscriptions).Methods("GET")

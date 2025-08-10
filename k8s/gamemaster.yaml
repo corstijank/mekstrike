@@ -98,6 +98,18 @@ spec:
 
 ---
 
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gamemaster-ws-stripprefix
+  namespace: mekstrike
+spec:
+  stripPrefix:
+    prefixes:
+      - "/mekstrike/api/gamemaster"
+
+---
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -116,3 +128,24 @@ spec:
                 name: gamemaster-dapr
                 port:
                   number: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gamemaster-websocket-ingress
+  namespace: mekstrike
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: mekstrike-gamemaster-ws-stripprefix@kubernetescrd
+spec:
+  rules:
+    - http:
+        paths:
+          - path: "/mekstrike/api/gamemaster/ws"
+            pathType: Prefix
+            backend:
+               service:
+                name: gamemaster-svc
+                port:
+                  number: 7011

@@ -204,20 +204,30 @@ function startPolling(gameId) {
 
     stopPolling(); // Clear any existing intervals
 
-    // Poll game state every 3 seconds (reduced frequency)
+    // Check if WebSocket is available to adjust polling frequency
+    const isWebSocketActive = typeof window !== 'undefined' && 
+                               window.websocketService && 
+                               window.websocketService.isConnected();
+    
+    // Reduce polling frequency when WebSocket is active (fallback only)
+    const gameStateInterval = isWebSocketActive ? 10000 : 3000; // 10s vs 3s
+    const actionsInterval = isWebSocketActive ? 8000 : 3000;    // 8s vs 3s  
+    const messagesInterval = isWebSocketActive ? 15000 : 5000;  // 15s vs 5s (messages come via WebSocket)
+
+    // Poll game state 
     gamePollingInterval = setInterval(() => {
         refreshGameState(gameId);
-    }, 3000);
+    }, gameStateInterval);
 
-    // Poll available actions every 3 seconds (reduced frequency)
+    // Poll available actions 
     actionsPollingInterval = setInterval(() => {
         refreshAvailableActions(gameId);
-    }, 3000);
+    }, actionsInterval);
 
-    // Poll messages every 5 seconds (reduced frequency)
+    // Poll messages (mainly as fallback when WebSocket is active)
     messagesPollingInterval = setInterval(() => {
         refreshGameMessages(gameId);
-    }, 5000);
+    }, messagesInterval);
 }
 
 /**

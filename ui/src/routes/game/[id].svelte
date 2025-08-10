@@ -15,6 +15,7 @@
 	// Import stores and services
 	import { initializeGame, cleanup, gameState } from '../../stores/gameStore.js';
 	import { initializeBoard } from '../../stores/battlefieldStore.js';
+	import { websocketService } from '../../services/websocketService.js';
 	
 	import 'terminal.css';
 
@@ -32,8 +33,7 @@
 	}
 
 	async function initializeGameData() {
-		if (initialized) return;
-		
+		if (initialized) return;		
 		try {
 			initialized = true;
 			// Initialize game state and board
@@ -41,6 +41,9 @@
 				initializeGame(gameId),
 				initializeBoard(gameId)
 			]);
+			
+			// Connect WebSocket for real-time updates
+			websocketService.connect(gameId);
 		} catch (error) {
 			console.error('Failed to initialize game:', error);
 			gameError = error;
@@ -55,6 +58,7 @@
 	onDestroy(() => {
 		// Clean up stores and polling when leaving the route
 		cleanup();
+		websocketService.disconnect();
 		initialized = false; // Reset for next time
 	});
 

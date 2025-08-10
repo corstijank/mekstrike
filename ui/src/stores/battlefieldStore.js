@@ -18,6 +18,10 @@ export const boardState = writable({
     error: null,
 });
 
+// Board refresh counter - incremented every time board data changes
+// Unit components can react to this to reload their data
+export const boardVersion = writable(0);
+
 // Movement highlights
 export const movementHighlights = writable([]);
 
@@ -54,6 +58,34 @@ export async function initializeBoard(gameId) {
         }));
     } catch (error) {
         console.error('Failed to initialize board:', error);
+        boardState.update(state => ({ 
+            ...state, 
+            error: error.message, 
+            loading: false 
+        }));
+    }
+}
+
+/**
+ * Refresh board data for a game
+ */
+export async function refreshBoard(gameId) {
+    if (!gameId) return;
+
+    try {
+        boardState.update(state => ({ ...state, loading: true, error: null }));
+        const boardData = await getBoardWithDimensions(gameId);
+        boardState.update(state => ({ 
+            ...state, 
+            ...boardData, 
+            loading: false, 
+            error: null 
+        }));
+        
+        // Increment board version to trigger unit reloads
+        boardVersion.update(version => version + 1);
+    } catch (error) {
+        console.error('Failed to refresh board:', error);
         boardState.update(state => ({ 
             ...state, 
             error: error.message, 

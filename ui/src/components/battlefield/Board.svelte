@@ -69,7 +69,6 @@
 		
 		isMoving = true;
 		try {
-			console.log(`Moving unit ${$availableActions.CurrentUnitID} to (${col}, ${row}) with heading ${heading}`);
 			
 			await gameAPI.moveUnit(
 				id, 
@@ -80,11 +79,7 @@
 			);
 			
 			// Clear selection after successful move
-			selectedMovement = null;
-			
-			// The game state will update via the normal polling mechanism
-			console.log('Move completed successfully');
-			
+			selectedMovement = null;			
 		} catch (error) {
 			console.error('Failed to execute move:', error);
 			// You could show an error message to the user here

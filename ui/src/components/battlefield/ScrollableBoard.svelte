@@ -4,6 +4,8 @@
 	import { scrollToPosition, clearScrollPosition } from '../../stores/battlefieldStore.js';
 	import { colToCenterX, rowToCenterY } from '../../utils/coordinates.js';
 	import { getScrollPosition } from '../../services/battlefieldService.js';
+	import { websocketService } from '../../services/websocketService.js';
+	import { onMount } from 'svelte';
 
 	export let id;
 
@@ -35,6 +37,40 @@
 			behavior: 'smooth'
 		});
 	}
+
+	/**
+	 * Preserve current viewport scroll position
+	 */
+	function preserveViewport() {
+		if (!boardViewport) return null;
+		
+		return {
+			scrollLeft: boardViewport.scrollLeft,
+			scrollTop: boardViewport.scrollTop
+		};
+	}
+
+	/**
+	 * Restore viewport scroll position
+	 */
+	function restoreViewport(scrollPosition) {
+		if (!boardViewport || !scrollPosition) return;
+		
+		boardViewport.scrollTo({
+			left: scrollPosition.scrollLeft,
+			top: scrollPosition.scrollTop,
+			behavior: 'instant'
+		});
+	}
+
+	// Register viewport preservation functions with WebSocket service on mount
+	onMount(() => {
+		// Update WebSocket service with viewport preservation functions
+		if (websocketService.isConnected() || websocketService.gameId === id) {
+			websocketService.onViewportPreserve = preserveViewport;
+			websocketService.onViewportRestore = restoreViewport;
+		}
+	});
 </script>
 
 <div class="scrollable-board-container" on:click={handleBoardClick}>

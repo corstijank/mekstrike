@@ -153,6 +153,15 @@ export function updateUnitCache(unitId, unitData) {
 }
 
 /**
+ * Clear unit cache to force refresh of unit data
+ */
+export function clearUnitCache() {
+    unitCache.set(new Map());
+    // Also clear loading states
+    unitLoadingStates.set(new Map());
+}
+
+/**
  * Set loading state for a unit
  */
 function setUnitLoading(unitId, loading) {
@@ -197,13 +206,6 @@ function calculateHealthPercent(unitData) {
     return max > 0 ? (current / max) * 100 : 100;
 }
 
-/**
- * Clear unit cache
- */
-export function clearUnitCache() {
-    unitCache.set(new Map());
-    unitLoadingStates.set(new Map());
-}
 
 /**
  * Cleanup function
