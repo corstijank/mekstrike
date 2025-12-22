@@ -46,3 +46,4 @@ nb-configuration.xml
 node_modules
 **/public/build
 gamemaster/gamemaster
+.gocache

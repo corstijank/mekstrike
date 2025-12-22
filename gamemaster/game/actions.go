@@ -8,15 +8,21 @@ import (
 	dapr "github.com/dapr/go-sdk/client"
 )
 
+// test seams to allow dependency injection in unit tests
+var (
+	getUnitClient        = uclient.GetUnitClient
+	getBattlefieldClient = bfclient.GetBattlefieldClient
+)
+
 func (d Data) GetAvailableActions(ctx context.Context, client dapr.Client) (AvailableActions, error) {
 	currentUnitID := d.CurrentUnitOrder[d.CurrentUnitIdx]
-	currentUnit := uclient.GetUnitClient(client, currentUnitID)
+	currentUnit := getUnitClient(client, currentUnitID)
 	unitData, err := currentUnit.GetData(ctx)
 	if err != nil {
 		return AvailableActions{}, err
 	}
 
-	bf := bfclient.GetBattlefieldClient(client, d.Battlefieldld)
+	bf := getBattlefieldClient(client, d.Battlefieldld)
 	options, err := bf.GetMovementOptions(ctx, &unitData)
 	if err != nil {
 		return AvailableActions{}, err

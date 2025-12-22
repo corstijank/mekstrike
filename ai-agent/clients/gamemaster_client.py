@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from dapr.clients import DaprClient
 
 logger = logging.getLogger(__name__)

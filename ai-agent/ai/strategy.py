@@ -256,7 +256,6 @@ class AIStrategy:
         try:
             import json
             import uuid
-            from datetime import datetime
             
             # Get current unit data for enrichment
             unit_data = {}
@@ -297,8 +296,6 @@ class AIStrategy:
         """Publish unit end phase completed event"""
         try:
             import json
-            import uuid
-            from datetime import datetime
             
             # Get current unit data for enrichment
             unit_data = {}

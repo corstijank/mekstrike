@@ -8,10 +8,26 @@ import (
 
 	unitType "github.com/corstijank/mekstrike/domain/unit"
 	"github.com/corstijank/mekstrike/gamemaster/clients/armybuilder"
-	"github.com/corstijank/mekstrike/gamemaster/clients/bfclient"
 	"github.com/corstijank/mekstrike/gamemaster/clients/uclient"
 	dapr "github.com/dapr/go-sdk/client"
 	uuid "github.com/satori/go.uuid"
+)
+
+// Test seams
+type armyBuilder interface {
+	CreateArmy(ctx context.Context, lights int, mediums int, heavies int, assaults int) ([]*unitType.Stats, error)
+}
+
+var (
+	// default factory uses real client
+	newArmyBuilder = func(client dapr.Client) (armyBuilder, error) {
+		ab, err := armybuilder.New(client)
+		if err != nil {
+			return nil, err
+		}
+		return &ab, nil
+	}
+	newUnitClient = uclient.NewUnit
 )
 
 func New(ctx context.Context, client dapr.Client, playername string) (Data, error) {
@@ -19,16 +35,17 @@ func New(ctx context.Context, client dapr.Client, playername string) (Data, erro
 	if err != nil {
 		log.Println(err)
 	}
+	idStr := id.String()
 
-	abc, err := armybuilder.New(client)
+	ab, err := newArmyBuilder(client)
 	if err != nil {
 		return Data{}, err
 	}
-	armyA, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	armyA, err := ab.CreateArmy(ctx, 1, 2, 1, 0)
 	if err != nil {
 		return Data{}, err
 	}
-	armyB, err := abc.CreateArmy(ctx, 1, 2, 1, 0)
+	armyB, err := ab.CreateArmy(ctx, 1, 2, 1, 0)
 	if err != nil {
 		return Data{}, err
 	}
@@ -36,7 +53,7 @@ func New(ctx context.Context, client dapr.Client, playername string) (Data, erro
 	log.Printf("Force A: %+v\n", armyA)
 	log.Printf("Force B: %+v\n", armyB)
 
-	bf := bfclient.GetBattlefieldClient(client, id.String())
+	bf := getBattlefieldClient(client, idStr)
 	if err != nil {
 		return Data{}, err
 	}
@@ -50,28 +67,28 @@ func New(ctx context.Context, client dapr.Client, playername string) (Data, erro
 	for _, u := range armyA {
 		valueA += int(u.Pointvalue)
 		// Should make DaprClient a parameter to skip useless inits in client
-		newUnit := uclient.NewUnit(client, bf.ID(), playername, u)
+		newUnit := newUnitClient(client, bf.ID(), playername, u)
 		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: playername, Stats: u, Corner: "NE"})
 		if err != nil {
 			return Data{}, err
 		}
-		playerAUnits = append(playerAUnits, newUnit.ID())
+		playerAUnits = append(playerAUnits, u.GetModel()+"-"+playername+"-"+idStr)
 	}
 
 	playerBUnits := make([]string, 0)
 	valueB := 0
 	for _, u := range armyB {
 		valueB += int(u.Pointvalue)
-		newUnit := uclient.NewUnit(client, bf.ID(), "CPU", u)
+		newUnit := newUnitClient(client, bf.ID(), "CPU", u)
 		err = newUnit.Deploy(ctx, unitType.DeployRequest{BattlefieldId: bf.ID(), Owner: "CPU", Stats: u, Corner: "SW"})
 		if err != nil {
 			return Data{}, err
 		}
-		playerBUnits = append(playerBUnits, newUnit.ID())
+		playerBUnits = append(playerBUnits, u.GetModel()+"-CPU-"+idStr)
 	}
 
 	return Data{
-		ID:            id.String(),
+		ID:            idStr,
 		StartTime:     time.Now(),
 		PlayerA:       playername,
 		PlayerAValue:  valueA,
@@ -79,7 +96,7 @@ func New(ctx context.Context, client dapr.Client, playername string) (Data, erro
 		PlayerB:       "CPU",
 		PlayerBValue:  valueB,
 		PlayerBUnits:  playerBUnits,
-		Battlefieldld: bf.ID(),
+		Battlefieldld: idStr,
 		ActivePlayer:  PlayerA,
 		CurrentRound:  0,
 		CurrentPhase:  Movement,

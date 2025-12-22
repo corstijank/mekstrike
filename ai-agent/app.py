@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import nest_asyncio
@@ -137,7 +136,7 @@ async def process_ai_turn(turn_data: Dict[str, Any]) -> None:
         # Initialize API clients
         gamemaster = GamemasterClient(dapr_client)
         unit_client = UnitClient(dapr_client)
-        battlefield = BattlefieldClient(dapr_client)
+        BattlefieldClient(dapr_client)
         
         # Get current game state
         logger.info("Fetching game data...")

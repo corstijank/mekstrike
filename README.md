@@ -1,5 +1,11 @@
 # Mekstrike
 
+## Overview
+
+Mekstrike is a Kubernetes‑native, Dapr‑powered tactical mech combat sandbox. It models a hex battlefield, mechs (units), turns/phases, and player/AI actions, orchestrated by a Go "gamemaster" service. Core logic is split across services: Java actors for `battlefield` and `unit`, a Java `armybuilder`, Go services for `library`, `importer`, and `mediaproxy`, a Python `ai-agent` that reacts to events, and a SvelteKit `ui` for visualization and control. Communication uses Dapr sidecars (HTTP/gRPC, pub/sub, state). Shared Protocol Buffers live under `domain/`. Scripts (`setup.sh`, `deploy.sh`) spin up the platform and deploy to a local Minikube profile (`mekstrike`).
+
+Use this repo to run the full stack locally, iterate on rules, and experiment with service boundaries and AI behaviors.
+
 ## Running / trying
 
 ### Requirements
@@ -92,4 +98,3 @@ desired:
 
 - Svelte webapp
 - CSS: <https://terminalcss.xyz/>
-

@@ -5,7 +5,7 @@
 - [X] Fix UI unit data presentation DMG (s/m/l/overheat)
 - [X] Refactor UI project structure
 - [X] Implement unit movement
-- [ ] Better updates / messaging to UI
+- [X] Better updates / messaging to UI
 - [ ] Move to Jaeger2
 - [ ] Reduce logging
 - [ ] Investigate tool for scraping/centralizing logging

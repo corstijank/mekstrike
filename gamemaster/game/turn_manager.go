@@ -21,6 +21,16 @@ func (g *Data) NewRound(ctx context.Context, client dapr.Client) {
 func (g *Data) AdvanceTurn(ctx context.Context, client dapr.Client) {
 	// Deactivate current unit
 	if g.CurrentUnitIdx < len(g.CurrentUnitOrder) {
+		// If no client provided (e.g., unit tests), skip remote calls
+		if client == nil {
+			g.CurrentUnitIdx++
+			if g.CurrentUnitIdx >= len(g.CurrentUnitOrder) {
+				g.advancePhase(ctx, client)
+			} else {
+				g.activateCurrentUnit(ctx, client)
+			}
+			return
+		}
 		currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
 		u := uclient.GetUnitClient(client, currentUnitID)
 		err := u.SetActive(ctx, false)
@@ -31,7 +41,7 @@ func (g *Data) AdvanceTurn(ctx context.Context, client dapr.Client) {
 
 	// Advance to next unit
 	g.CurrentUnitIdx++
-	
+
 	// Check if all units have moved in current phase
 	if g.CurrentUnitIdx >= len(g.CurrentUnitOrder) {
 		g.advancePhase(ctx, client)
@@ -66,9 +76,14 @@ func (g *Data) activateCurrentUnit(ctx context.Context, client dapr.Client) {
 		return
 	}
 
+	// If no client provided (e.g., unit tests), skip remote activation
+	if client == nil {
+		return
+	}
+
 	currentUnitID := g.CurrentUnitOrder[g.CurrentUnitIdx]
 	log.Printf("Activating unit %s", currentUnitID)
-	
+
 	u := uclient.GetUnitClient(client, currentUnitID)
 	err := u.SetActive(ctx, true)
 	if err != nil {
