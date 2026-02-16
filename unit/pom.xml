@@ -7,8 +7,8 @@
   <packaging>jar</packaging>
  
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
@@ -18,7 +18,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>2.3.5.RELEASE</version>
+        <version>3.4.6</version>
         <executions>
           <execution>
             <goals>
@@ -53,22 +53,22 @@
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk</artifactId>
-      <version>1.7.1</version>
+      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>3.25.2</version>
+      <version>4.33.5</version>
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk-actors</artifactId>
-      <version>1.7.1</version>
+      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk-springboot</artifactId>
-      <version>1.7.1</version>
+      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

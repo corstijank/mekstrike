@@ -58,12 +58,12 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>3.25.2</version>
+      <version>4.33.5</version>
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk</artifactId>
-      <version>1.10.0</version>
+      <version>1.16.1</version>
     </dependency>
   </dependencies>
 
