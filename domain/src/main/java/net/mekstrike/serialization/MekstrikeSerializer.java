@@ -3,6 +3,7 @@ package net.mekstrike.serialization;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.StringJoiner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,27 +25,23 @@ public class MekstrikeSerializer extends ObjectSerializer implements DaprObjectS
 
     @Override
     public byte[] serialize(Object o) throws IOException {
-        byte[] result;
-        if (o instanceof MessageOrBuilder) {
-            var m = (MessageOrBuilder) o;
-            result = printer.print(m).getBytes();
-        } else if (o instanceof List) {
-            String resultString = "[";
-            for (Object obj : (List<?>) o) {
-                if (obj instanceof MessageOrBuilder) {
-                    var m = (MessageOrBuilder) obj;
-                    resultString += printer.print(m) + ",";
-                } else {
-                    resultString += new String(super.serialize(obj));
-                }
+        return switch (o) {
+            case MessageOrBuilder m -> printer.print(m).getBytes();
+            case List<?> list -> serializeList(list);
+            default -> super.serialize(o);
+        };
+    }
+
+    private byte[] serializeList(List<?> list) throws IOException {
+        var joiner = new StringJoiner(",", "[", "]");
+        for (Object obj : list) {
+            if (obj instanceof MessageOrBuilder m) {
+                joiner.add(printer.print(m));
+            } else {
+                joiner.add(new String(super.serialize(obj)));
             }
-            resultString = resultString.substring(0, resultString.length() - 1);
-            resultString += "]";
-            result = resultString.getBytes();
-        } else {
-            result = super.serialize(o);
         }
-        return result;
+        return joiner.toString().getBytes();
     }
 
     public <T> T deserialize(byte[] content, TypeRef<T> type) throws IOException {
@@ -62,21 +59,22 @@ public class MekstrikeSerializer extends ObjectSerializer implements DaprObjectS
         }
         try {
             var newBuilderMethod = javaType.getRawClass().getMethod("newBuilder");
+            var builderObj = newBuilderMethod.invoke(null);
 
-            var builder = newBuilderMethod.invoke(null);
-            var buildMethod = builder.getClass().getMethod("build");
+            if (builderObj instanceof Builder builder) {
+                parser.merge(new String(content), builder);
+                return (T) builder.build();
+            }
 
-            parser.merge(new String(content), (Builder) builder);
-
-            return (T) buildMethod.invoke(builder);
-        } catch (NoSuchMethodException e) {
-            // Fallback to jackson mapper if this isnt a protobuf builder
+            throw new IllegalStateException("newBuilder() did not return a protobuf Builder");
+        } catch (NoSuchMethodException _) {
+            // Fallback to jackson mapper if this isn't a protobuf builder
             return OBJECT_MAPPER.readValue(content, javaType);
         } catch (SecurityException | IllegalAccessException
                 | IllegalArgumentException | InvocationTargetException e) {
             logger.error("Error deserializing", e);
+            throw new IllegalStateException("Unable to deserialize", e);
         }
-        throw new IllegalStateException("Unable to deserialize");
     }
 
     @Override
