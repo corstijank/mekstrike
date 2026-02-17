@@ -15,7 +15,7 @@ public class DaprApplication {
    */
   public static void start(int port) {
     SpringApplication app = new SpringApplication(DaprApplication.class);
-    app.run(String.format("--server.port=%d", port));
+    app.run("--server.port=%d".formatted(port));
   }
 
 } 

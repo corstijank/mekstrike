@@ -8,7 +8,6 @@ import io.dapr.actors.runtime.AbstractActor;
 import io.dapr.actors.runtime.ActorRuntimeContext;
 import io.dapr.client.DaprClient;
 import io.dapr.client.DaprClientBuilder;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.mekstrike.domain.battlefield.Battlefield;
@@ -165,35 +164,24 @@ public class UnitImpl extends AbstractActor implements IUnit {
 
     @Override
     public String move(Object moveRequest) {
-        // Handle case where moveRequest might be deserialized as a Map from JSON
-        Battlefield.Coordinates actualTargetPosition;
         int newHeading = location.getHeading(); // Default to current heading
 
-        if (moveRequest instanceof java.util.Map) {
-            @SuppressWarnings("unchecked")
-            java.util.Map<String, Object> requestMap = (java.util.Map<
-                String,
-                Object
-            >) moveRequest;
-            int x = ((Number) requestMap.get("x")).intValue();
-            int y = ((Number) requestMap.get("y")).intValue();
-            actualTargetPosition = Battlefield.Coordinates.newBuilder()
-                .setX(x)
-                .setY(y)
-                .build();
-
-            // Extract heading if provided
-            if (requestMap.containsKey("heading")) {
-                newHeading = ((Number) requestMap.get("heading")).intValue();
+        @SuppressWarnings("unchecked")
+        Battlefield.Coordinates actualTargetPosition = switch (moveRequest) {
+            case Map<?, ?> rawMap -> {
+                var requestMap = (Map<String, Object>) rawMap;
+                int x = ((Number) requestMap.get("x")).intValue();
+                int y = ((Number) requestMap.get("y")).intValue();
+                if (requestMap.containsKey("heading")) {
+                    newHeading = ((Number) requestMap.get("heading")).intValue();
+                }
+                yield Battlefield.Coordinates.newBuilder().setX(x).setY(y).build();
             }
-        } else if (moveRequest instanceof Battlefield.Coordinates) {
-            actualTargetPosition = (Battlefield.Coordinates) moveRequest;
-            // When using Coordinates directly, heading stays the same
-        } else {
-            throw new IllegalArgumentException(
+            case Battlefield.Coordinates coords -> coords;
+            default -> throw new IllegalArgumentException(
                 "Invalid moveRequest type: " + moveRequest.getClass()
             );
-        }
+        };
 
         if (logger.isInfoEnabled()) {
             logger.info(
@@ -217,33 +205,24 @@ public class UnitImpl extends AbstractActor implements IUnit {
 
         boolean moveAllowed = allowedMoves
             .stream()
-            .anyMatch(coord -> {
-                // Handle case where coord might be deserialized as a Map from JSON
-                if (coord instanceof java.util.Map) {
+            .anyMatch(coord -> switch (coord) {
+                case Map<?, ?> rawCoord -> {
                     @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> coordMap = (java.util.Map<
-                        String,
-                        Object
-                    >) coord;
+                    var coordMap = (Map<String, Object>) rawCoord;
                     int x = ((Number) coordMap.get("x")).intValue();
                     int y = ((Number) coordMap.get("y")).intValue();
-                    return (
-                        x == actualTargetPosition.getX() &&
-                        y == actualTargetPosition.getY()
-                    );
-                } else if (coord instanceof Battlefield.Coordinates) {
-                    Battlefield.Coordinates battleCoord =
-                        (Battlefield.Coordinates) coord;
-                    return (
-                        battleCoord.getX() == actualTargetPosition.getX() &&
-                        battleCoord.getY() == actualTargetPosition.getY()
-                    );
-                } else {
+                    yield x == actualTargetPosition.getX()
+                        && y == actualTargetPosition.getY();
+                }
+                case Battlefield.Coordinates battleCoord ->
+                    battleCoord.getX() == actualTargetPosition.getX()
+                        && battleCoord.getY() == actualTargetPosition.getY();
+                default -> {
                     logger.error(
                         "Unknown coordinate type in allowedMoves: {}",
                         coord.getClass()
                     );
-                    return false;
+                    yield false;
                 }
             });
 
@@ -348,38 +327,24 @@ public class UnitImpl extends AbstractActor implements IUnit {
         DaprClient daprClient = null;
         try {
             daprClient = new DaprClientBuilder().build();
-            // Create event data matching the AI agent's event format
-            Map<String, Object> eventData = new HashMap<>();
-            eventData.put("GameId", location.getBattlefieldId()); // GameId is same as BattlefieldId
-            eventData.put("UnitId", getId().toString());
-            eventData.put("Phase", "Movement");
-            eventData.put("BattlefieldId", location.getBattlefieldId());
 
-            Map<String, Integer> sourceLocation = new HashMap<>();
-            sourceLocation.put("x", previousPosition.getX());
-            sourceLocation.put("y", previousPosition.getY());
-            eventData.put("SourceLocation", sourceLocation);
+            var eventData = Map.of(
+                "GameId", (Object) location.getBattlefieldId(),
+                "UnitId", getId().toString(),
+                "Phase", "Movement",
+                "BattlefieldId", location.getBattlefieldId(),
+                "SourceLocation", Map.of("x", previousPosition.getX(), "y", previousPosition.getY()),
+                "TargetLocation", Map.of("x", targetPosition.getX(), "y", targetPosition.getY()),
+                "Unit", Map.of(
+                    "Id", (Object) getId().toString(),
+                    "Model", stats.getModel(),
+                    "Owner", owner,
+                    "Position", Map.of("x", targetPosition.getX(), "y", targetPosition.getY()),
+                    "Status", Map.of()
+                )
+            );
 
-            Map<String, Integer> targetLocation = new HashMap<>();
-            targetLocation.put("x", targetPosition.getX());
-            targetLocation.put("y", targetPosition.getY());
-            eventData.put("TargetLocation", targetLocation);
-
-            Map<String, Object> unitInfo = new HashMap<>();
-            unitInfo.put("Id", getId().toString());
-            unitInfo.put("Model", stats.getModel());
-            unitInfo.put("Owner", owner);
-
-            Map<String, Integer> position = new HashMap<>();
-            position.put("x", targetPosition.getX());
-            position.put("y", targetPosition.getY());
-            unitInfo.put("Position", position);
-            unitInfo.put("Status", new HashMap<>());
-            eventData.put("Unit", unitInfo);
-
-            // Convert to JSON
-            ObjectMapper mapper = new ObjectMapper();
-            String jsonData = mapper.writeValueAsString(eventData);
+            var jsonData = new ObjectMapper().writeValueAsString(eventData);
 
             daprClient
                 .publishEvent(
