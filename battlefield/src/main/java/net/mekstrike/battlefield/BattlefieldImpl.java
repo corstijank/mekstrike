@@ -18,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 public class BattlefieldImpl extends AbstractActor implements IBattlefield {
     private static final Logger LOGGER = LoggerFactory.getLogger(BattlefieldImpl.class);
@@ -42,16 +42,15 @@ public class BattlefieldImpl extends AbstractActor implements IBattlefield {
     public List<Battlefield.Cell> getBoardCells() {
         LOGGER.info("GetBoardCells called");
 
-        var result = new ArrayList<Battlefield.Cell>();
-        for (Hexagon<BattlefieldHexData> hexagon : grid.getHexagons()) {
-            var c = hexagon.getCubeCoordinate();
-            var x = convertCubeCoordinateToOffsetColumn(c, HexagonOrientation.FLAT_TOP);
-            var y = convertCubeCoordinateToOffsetRow(c, HexagonOrientation.FLAT_TOP);
-            var coordinates = Battlefield.Coordinates.newBuilder().setX(x).setY(y).build();
-            var cell = Battlefield.Cell.newBuilder().setCoordinates(coordinates).setType("GRASS").build();
-            result.add(cell);
-        }
-        return result;
+        return StreamSupport.stream(grid.getHexagons().spliterator(), false)
+                .map(hexagon -> {
+                    var c = hexagon.getCubeCoordinate();
+                    var x = convertCubeCoordinateToOffsetColumn(c, HexagonOrientation.FLAT_TOP);
+                    var y = convertCubeCoordinateToOffsetRow(c, HexagonOrientation.FLAT_TOP);
+                    var coordinates = Battlefield.Coordinates.newBuilder().setX(x).setY(y).build();
+                    return Battlefield.Cell.newBuilder().setCoordinates(coordinates).setType("GRASS").build();
+                })
+                .toList();
     }
 
     @Override
@@ -68,62 +67,57 @@ public class BattlefieldImpl extends AbstractActor implements IBattlefield {
     public boolean isCellBlocked(Battlefield.Coordinates cellRef) {
         LOGGER.info("isCellBlocked called");
 
-        var h = getHex(cellRef.getX(),
-                cellRef.getY());
-        if (!h.getSatelliteData().isPresent()) {
-            h.setSatelliteData(new BattlefieldHexData());
-        }
+        var h = getHex(cellRef.getX(), cellRef.getY());
+        ensureSatelliteData(h);
         return h.getSatelliteData().get().isOccupied();
     }
 
     @Override
     public void blockCell(Battlefield.Coordinates cellRef) {
         LOGGER.info("BlockCell called");
-        var h = getHex(cellRef.getX(),
-                cellRef.getY());
-        if (!h.getSatelliteData().isPresent()) {
-            h.setSatelliteData(new BattlefieldHexData());
-        }
+        var h = getHex(cellRef.getX(), cellRef.getY());
+        ensureSatelliteData(h);
         h.getSatelliteData().get().setOccupied(true);
 
         saveBattlefield().block();
     }
-    
+
     @Override
     public void unblockCell(Battlefield.Coordinates cellRef) {
         LOGGER.info("UnblockCell called");
-        var h = getHex(cellRef.getX(),
-                cellRef.getY());
-        if (!h.getSatelliteData().isPresent()) {
-            h.setSatelliteData(new BattlefieldHexData());
-        }
+        var h = getHex(cellRef.getX(), cellRef.getY());
+        ensureSatelliteData(h);
         h.getSatelliteData().get().setOccupied(false);
 
         saveBattlefield().block();
     }
 
+    private void ensureSatelliteData(Hexagon<BattlefieldHexData> h) {
+        if (h.getSatelliteData().isEmpty()) {
+            h.setSatelliteData(new BattlefieldHexData());
+        }
+    }
+
     @Override
     public List<Battlefield.Coordinates> getMovementOptions(Unit.Data unit) {
         LOGGER.info("GetMovementOptions called");
-        var result = new ArrayList<Battlefield.Coordinates>();
 
         var calculator = new HexagonalGridBuilder<BattlefieldHexData>().buildCalculatorFor(grid);
 
         var h = getHex(unit.getLocation().getPosition().getX(),
                 unit.getLocation().getPosition().getY());
         var movement = Integer.parseInt(unit.getStats().getMovement().split("\"")[0]) / 2;
-        var options = calculator.calculateMovementRangeFrom(h, movement);
-        for (Hexagon<BattlefieldHexData> hexagon : options) {
-            if (hexagon.getSatelliteData().isPresent() && !hexagon.getSatelliteData().get().isOccupied()
-                    || !hexagon.getSatelliteData().isPresent()) {
-                var oc = hexagon.getCubeCoordinate();
-                var ox = convertCubeCoordinateToOffsetColumn(oc, HexagonOrientation.FLAT_TOP);
-                var oy = convertCubeCoordinateToOffsetRow(oc, HexagonOrientation.FLAT_TOP);
-                result.add(Battlefield.Coordinates.newBuilder().setX(ox).setY(oy).build());
-            }
-        }
 
-        return result;
+        return calculator.calculateMovementRangeFrom(h, movement).stream()
+                .filter(hexagon -> hexagon.getSatelliteData().isEmpty()
+                        || !hexagon.getSatelliteData().get().isOccupied())
+                .map(hexagon -> {
+                    var oc = hexagon.getCubeCoordinate();
+                    var ox = convertCubeCoordinateToOffsetColumn(oc, HexagonOrientation.FLAT_TOP);
+                    var oy = convertCubeCoordinateToOffsetRow(oc, HexagonOrientation.FLAT_TOP);
+                    return Battlefield.Coordinates.newBuilder().setX(ox).setY(oy).build();
+                })
+                .toList();
     }
 
     public Mono<Void> saveBattlefield() {
@@ -159,35 +153,17 @@ public class BattlefieldImpl extends AbstractActor implements IBattlefield {
         return saveBattlefield();
     }
 
-    /**
-     * Calculates the offset row based on a CubeCoordinate.
-     *
-     * @param coordinate  a cube coordinate
-     * @param orientation orientation
-     *
-     * @return offset row or y-value
-     */
     public static int convertCubeCoordinateToOffsetRow(CubeCoordinate coordinate, HexagonOrientation orientation) {
-        if (HexagonOrientation.FLAT_TOP.equals(orientation)) {
-            return 1+ coordinate.getGridZ() + (coordinate.getGridX() - (coordinate.getGridX() & 1)) / 2;
-        } else {
-            return 1+coordinate.getGridZ();
-        }
+        return switch (orientation) {
+            case FLAT_TOP -> 1 + coordinate.getGridZ() + (coordinate.getGridX() - (coordinate.getGridX() & 1)) / 2;
+            case POINTY_TOP -> 1 + coordinate.getGridZ();
+        };
     }
 
-    /**
-     * Calculates the offset column based on a CubeCoordinate.
-     *
-     * @param coordinate  a cube coordinate
-     * @param orientation orientation
-     *
-     * @return offset column or x-value
-     */
     public static int convertCubeCoordinateToOffsetColumn(CubeCoordinate coordinate, HexagonOrientation orientation) {
-        if (HexagonOrientation.FLAT_TOP.equals(orientation)) {
-            return 1+ coordinate.getGridX();
-        } else {
-            return 1+ coordinate.getGridX() + (coordinate.getGridZ() - (coordinate.getGridZ() & 1)) / 2;
-        }
+        return switch (orientation) {
+            case FLAT_TOP -> 1 + coordinate.getGridX();
+            case POINTY_TOP -> 1 + coordinate.getGridX() + (coordinate.getGridZ() - (coordinate.getGridZ() & 1)) / 2;
+        };
     }
 }

@@ -1,5 +1,5 @@
 # Build JAR
-FROM maven:3-eclipse-temurin-21 AS BUILDER
+FROM maven:3-eclipse-temurin-25 AS BUILDER
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN mvn dependency:go-offline
 RUN mvn package
 
 ## Build actual image
-FROM eclipse-temurin:21
+FROM eclipse-temurin:25
 
 WORKDIR /app
 
