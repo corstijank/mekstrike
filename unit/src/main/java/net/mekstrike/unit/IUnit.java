@@ -6,15 +6,15 @@ import net.mekstrike.domain.unit.Unit;
 
 @ActorType(name = "unit")
 public interface IUnit {
-    @ActorMethod(name = "Deploy")
-    void deploy(Unit.DeployRequest request);
+  @ActorMethod(name = "Deploy")
+  void deploy(Unit.DeployRequest request);
 
-    @ActorMethod(name = "GetData")
-    Unit.Data getData();
+  @ActorMethod(name = "GetData")
+  Unit.Data getData();
 
-    @ActorMethod(name = "SetActive")
-    void setActive(boolean active);
-    
-    @ActorMethod(name = "Move")
-    String move(Object targetPosition);
+  @ActorMethod(name = "SetActive")
+  void setActive(boolean active);
+
+  @ActorMethod(name = "Move")
+  String move(Object targetPosition);
 }

@@ -21,11 +21,13 @@ public class ArmyBuilderService extends AppCallbackGrpc.AppCallbackImplBase {
   }
 
   @Override
-  public void onInvoke(CommonProtos.InvokeRequest request,
+  public void onInvoke(
+      CommonProtos.InvokeRequest request,
       StreamObserver<CommonProtos.InvokeResponse> responseObserver) {
     try {
       if ("createArmy".equals(request.getMethod())) {
-        ArmyRequest armyRequest = ArmyRequest.newBuilder().mergeFrom(request.getData().getValue()).build();
+        ArmyRequest armyRequest =
+            ArmyRequest.newBuilder().mergeFrom(request.getData().getValue()).build();
 
         var army = createArmy(armyRequest);
 
@@ -53,14 +55,21 @@ public class ArmyBuilderService extends AppCallbackGrpc.AppCallbackImplBase {
     return result.build();
   }
 
-  private void fetchUnits(JsonFormat.Parser parser, ArmyResponse.Builder result,
-      int count, String weightClass) throws InvalidProtocolBufferException {
+  private void fetchUnits(
+      JsonFormat.Parser parser, ArmyResponse.Builder result, int count, String weightClass)
+      throws InvalidProtocolBufferException {
     for (int i = 0; i < count; i++) {
       var unit = Unit.Stats.newBuilder();
-      byte[] response = client
-          .invokeMethod("library", "units/by/BM/%s/random".formatted(weightClass),
-              "", HttpExtension.GET, null, byte[].class)
-          .block();
+      byte[] response =
+          client
+              .invokeMethod(
+                  "library",
+                  "units/by/BM/%s/random".formatted(weightClass),
+                  "",
+                  HttpExtension.GET,
+                  null,
+                  byte[].class)
+              .block();
       parser.merge(new String(response), unit);
       result.addUnits(unit);
     }

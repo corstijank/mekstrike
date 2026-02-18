@@ -255,7 +255,6 @@ class AIStrategy:
         """Publish unit attack completed event"""
         try:
             import json
-            import uuid
             
             # Get current unit data for enrichment
             unit_data = {}

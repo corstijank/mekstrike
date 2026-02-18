@@ -1,6 +1,7 @@
 # Build JAR
 FROM maven:3-eclipse-temurin-25 AS BUILDER
 
+COPY pom.xml /app/pom.xml
 COPY domain /app/domain
 COPY armybuilder /app/armybuilder
 

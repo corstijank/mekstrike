@@ -3,6 +3,7 @@ FROM maven:3-eclipse-temurin-25 AS BUILDER
 
 WORKDIR /app
 
+COPY pom.xml /app/pom.xml
 COPY battlefield /app/battlefield
 COPY domain /app/domain
 

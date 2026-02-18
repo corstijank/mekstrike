@@ -3,25 +3,22 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
   xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>net.mekstrike</groupId>
-  <artifactId>battlefield</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
-  <packaging>jar</packaging>
 
-  <properties>
-    <maven.compiler.source>25</maven.compiler.source>
-    <maven.compiler.target>25</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <springboot.version>3.4.6</springboot.version>
-  </properties>
+  <parent>
+    <groupId>net.mekstrike</groupId>
+    <artifactId>mekstrike-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>battlefield</artifactId>
+  <packaging>jar</packaging>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>${springboot.version}</version>
         <executions>
           <execution>
             <goals>
@@ -38,25 +35,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.3</version>
-        <configuration>
-          <argLine>-javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/1.18.5/byte-buddy-agent-1.18.5.jar</argLine>
-        </configuration>
       </plugin>
     </plugins>
   </build>
 
   <repositories>
-    <!-- BEGIN: Dapr's repositories -->
-    <repository>
-      <id>oss-snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-    <repository>
-      <id>oss-release</id>
-      <url>https://oss.sonatype.org/content/repositories/releases/</url>
-    </repository>
-    <!-- END: Dapr's repositories -->
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url> <!-- Mixite uses Jitpack repository -->
@@ -73,85 +56,46 @@
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk</artifactId>
-      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>4.33.5</version>
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk-actors</artifactId>
-      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>io.dapr</groupId>
       <artifactId>dapr-sdk-springboot</artifactId>
-      <version>1.16.1</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-      <version>${springboot.version}</version>
     </dependency>
     <dependency>
       <groupId>net.mekstrike</groupId>
       <artifactId>domain</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.12.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>5.16.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy</artifactId>
-      <version>1.18.5</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy-agent</artifactId>
-      <version>1.18.5</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <!-- Seperate profile for M1 Macs -->
-  <profiles>
-    <profile>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.github.os72</groupId>
-            <artifactId>protoc-jar-maven-plugin</artifactId>
-            <version>3.11.4</version>
-            <executions>
-              <execution>
-                <configuration>
-                  <protocCommand>protoc</protocCommand> <!-- brew install protobuf -->
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-      <activation>
-        <os>
-          <name>mac os x</name>
-          <arch>aarch64</arch>
-          <family>mac</family>
-        </os>
-      </activation>
-    </profile>
-  </profiles>
 </project>
